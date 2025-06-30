@@ -6,11 +6,13 @@ import Phonetic from './components/Phonetic'
 import Translation from './components/Translation'
 import WordComponent from './components/Word'
 import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
-import { useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import type { Word } from '@/typings'
 import { Box, Stack, Typography } from '@mui/joy'
 import { useTypingConfigStore, ReviewModeInfo } from '@/store/typing'
+import type { WordUpdateAction } from './components/InputHandler'
+import InputHandler from './components/InputHandler'
 
 export default function WordPanel() {
   const { state, dispatch } = useContext(TypingContext)!
@@ -26,6 +28,9 @@ export default function WordPanel() {
   const [currentWordExerciseCount, setCurrentWordExerciseCount] = useState(0)
   const currentWord = state.chapterData.words[state.chapterData.index]
   const nextWord = state.chapterData.words[state.chapterData.index + 1] as Word | undefined
+
+  // 用于存储每个单词的按键时间戳
+  const letterTimeArrayRef = useRef<number[]>([])
 
   const prevIndex = useMemo(() => {
     const newIndex = state.chapterData.index - 1
@@ -52,54 +57,66 @@ export default function WordPanel() {
     [setReviewModeInfo],
   )
 
-  const onFinish = useCallback(
-    (data: { letterMistake: any; letterTimeArray: number[]; correctCount: number; wrongCount: number }) => {
-      console.log("onFinish", data)
-      if (data.wrongCount === 0) {
-        dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD, payload: { letterTimeArray: data.letterTimeArray } })
-      } else {
-        dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: data.letterMistake, letterTimeArray: data.letterTimeArray } })
+  // 处理单词输入和按键时间记录
+  const updateInput = useCallback((updateObj: WordUpdateAction) => {
+    if (updateObj.type === 'add') {
+      letterTimeArrayRef.current.push(Date.now())
+      dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } })
+    } else if (updateObj.type === 'delete') {
+      if (letterTimeArrayRef.current.length > 0) {
+        letterTimeArrayRef.current.pop()
       }
+      dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: {}, letterTimeArray: letterTimeArrayRef.current } })
+    }
+    // Add composition handling if needed
+  }, [dispatch])
 
-      if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
-        if (currentWordExerciseCount < loopWordTimes - 1) {
-          setCurrentWordExerciseCount((old: number) => old + 1)
-          dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
-          reloadCurrentWordComponent()
-        } else {
-          setCurrentWordExerciseCount(0)
-          if (isReviewMode) {
-            dispatch({
-              type: TypingStateActionType.NEXT_WORD,
-              payload: {
-                updateReviewRecord,
-                letterTimeArray: data.letterTimeArray,
-              },
-            })
-          } else {
-            dispatch({ type: TypingStateActionType.NEXT_WORD, payload: { letterTimeArray: data.letterTimeArray } })
-          }
-        }
+  const onFinish = useCallback(() => {
+    // 重置 letterTimeArrayRef
+    letterTimeArrayRef.current = []
+
+    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
+      // 用户完成当前单词
+      if (currentWordExerciseCount < loopWordTimes - 1) {
+        setCurrentWordExerciseCount((old: number) => old + 1)
+        dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
+        reloadCurrentWordComponent()
       } else {
         setCurrentWordExerciseCount(0)
-        dispatch({ type: TypingStateActionType.FINISH_CHAPTER, payload: { letterTimeArray: data.letterTimeArray } })
+        if (isReviewMode) {
+          dispatch({
+            type: TypingStateActionType.NEXT_WORD,
+            payload: {
+              updateReviewRecord,
+              letterTimeArray: letterTimeArrayRef.current, // Pass letterTimeArray here
+            },
+          })
+        } else {
+          dispatch({ type: TypingStateActionType.NEXT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } }) // Pass letterTimeArray here
+        }
       }
-    },
-    [
-      state.chapterData.index,
-      state.chapterData.words.length,
-      currentWordExerciseCount,
-      loopWordTimes,
-      dispatch,
-      reloadCurrentWordComponent,
-      isReviewMode,
-      updateReviewRecord,
-      setReviewModeInfo,
-    ],
-  )
+    } else {
+      // 最后一个单词或最后一轮循环
+      setCurrentWordExerciseCount(0)
+      // 章节完成，触发 FINISH_CHAPTER
+      dispatch({ type: TypingStateActionType.FINISH_CHAPTER, payload: { letterTimeArray: letterTimeArrayRef.current } })
+    }
+  }, [
+    state.chapterData.index,
+    state.chapterData.words.length,
+    currentWordExerciseCount,
+    loopWordTimes,
+    dispatch,
+    reloadCurrentWordComponent,
+    isReviewMode,
+    updateReviewRecord,
+    setReviewModeInfo,
+  ])
 
   const onSkipWord = useCallback(
     (type: 'prev' | 'next') => {
+      // 重置 letterTimeArrayRef
+      letterTimeArrayRef.current = []
       if (type === 'prev') {
         dispatch({ type: TypingStateActionType.SKIP_2_WORD_INDEX, newIndex: prevIndex })
       }
@@ -239,6 +256,7 @@ export default function WordPanel() {
           </Box>
         )}
       </Box>
+      <InputHandler updateInput={updateInput} />
     </Stack>
   )
 }

@@ -53,7 +53,7 @@ const Typing: React.FC = () => {
     isError: isWordsError,
   } = useQuery({
     queryKey: currentDictInfo ? ['words', currentDictInfo.id] : [],
-    queryFn: () => currentDictInfo ? fetchWordsByDictionary(currentDictInfo.id, { page: 1, limit: 10 }) : Promise.resolve({ data: [] }),
+    queryFn: () => currentDictInfo ? fetchWordsByDictionary(currentDictInfo.id, { page: 1, limit: 999 }) : Promise.resolve({ data: [] }),
     enabled: !!currentDictInfo
   })
 
