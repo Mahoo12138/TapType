@@ -51,7 +51,7 @@ export default function PrevAndNextWord({ type }: LastAndNextWordProps) {
             }}
           >
             {type === 'prev' && <IconPrev style={{ marginRight: 16, fontSize: 24, flexShrink: 0 }} />}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: type === 'next' ? 'flex-end' : 'flex-start', textAlign: type === 'next' ? 'right' : 'left' }}>
+            <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: type === 'next' ? 'flex-end' : 'flex-start', textAlign: type === 'next' ? 'right' : 'left', mx: 2 }}>
               <Typography
                 level="body-lg"
                 sx={{
@@ -60,6 +60,10 @@ export default function PrevAndNextWord({ type }: LastAndNextWordProps) {
                   fontWeight: 400,
                   color: 'text.secondary',
                   letterSpacing: !wordDictationConfig.isOpen ? 'normal' : '0.2em',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {headWord}

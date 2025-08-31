@@ -53,7 +53,7 @@ const Typing: React.FC = () => {
     isError: isWordsError,
   } = useQuery({
     queryKey: currentDictInfo ? ['words', currentDictInfo.id] : [],
-    queryFn: () => currentDictInfo ? fetchWordsByDictionary(currentDictInfo.id, { page: 1, limit: 999 }) : Promise.resolve({ data: [] }),
+    queryFn: () => currentDictInfo ? fetchWordsByDictionary(currentDictInfo.id, { page: 1, limit: 10 }) : Promise.resolve({ data: [] }),
     enabled: !!currentDictInfo
   })
 
@@ -97,14 +97,6 @@ const Typing: React.FC = () => {
   }, [state.isTyping, isLoading, dispatch])
 
   useEffect(() => {
-    console.log('useEffect triggered. State:', {
-      isFinished: state.isFinished,
-      isSavingRecord: state.isSavingRecord,
-      isSaving: isSaving,
-      wordsDataExists: !!wordsData?.data,
-      hasSavedChapterRef: hasSavedChapterRef.current,
-    });
-
     // 当用户完成章节后且完成 word Record 数据保存，记录 chapter Record 数据,
     // Add hasSavedChapterRef.current to prevent infinite calls after a single chapter completion.
     if (state.isFinished && !state.isSavingRecord && !isSaving && wordsData?.data && !hasSavedChapterRef.current) {
@@ -125,10 +117,6 @@ const Typing: React.FC = () => {
       })
 
       saveChapterRecord({ state, words })
-    } else if (!state.isFinished && hasSavedChapterRef.current) {
-      // Reset the flag if a new chapter starts or user exits the finished state
-      console.log('Resetting hasSavedChapterRef as chapter is not finished.');
-      hasSavedChapterRef.current = false;
     }
   }, [state.isFinished, state.isSavingRecord, isSaving, wordsData, saveChapterRecord])
 
@@ -148,10 +136,10 @@ const Typing: React.FC = () => {
     const onBlur = () => {
       dispatch({ type: TypingStateActionType.SET_IS_TYPING, payload: false })
     }
-    window.addEventListener('blur', onBlur)
+    // window.addEventListener('blur', onBlur)
 
     return () => {
-      window.removeEventListener('blur', onBlur)
+      // window.removeEventListener('blur', onBlur)
     }
   }, [dispatch])
 
