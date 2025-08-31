@@ -6,11 +6,13 @@ import Phonetic from './components/Phonetic'
 import Translation from './components/Translation'
 import WordComponent from './components/Word'
 import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
-import { useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import type { Word } from '@/typings'
 import { Box, Stack, Typography } from '@mui/joy'
 import { useTypingConfigStore, ReviewModeInfo } from '@/store/typing'
+import type { WordUpdateAction } from './components/InputHandler'
+import InputHandler from './components/InputHandler'
 
 export default function WordPanel() {
   const { state, dispatch } = useContext(TypingContext)!
@@ -26,6 +28,9 @@ export default function WordPanel() {
   const [currentWordExerciseCount, setCurrentWordExerciseCount] = useState(0)
   const currentWord = state.chapterData.words[state.chapterData.index]
   const nextWord = state.chapterData.words[state.chapterData.index + 1] as Word | undefined
+
+  // 用于存储每个单词的按键时间戳
+  const letterTimeArrayRef = useRef<number[]>([])
 
   const prevIndex = useMemo(() => {
     const newIndex = state.chapterData.index - 1
@@ -52,7 +57,24 @@ export default function WordPanel() {
     [setReviewModeInfo],
   )
 
+  // 处理单词输入和按键时间记录
+  const updateInput = useCallback((updateObj: WordUpdateAction) => {
+    if (updateObj.type === 'add') {
+      letterTimeArrayRef.current.push(Date.now())
+      dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } })
+    } else if (updateObj.type === 'delete') {
+      if (letterTimeArrayRef.current.length > 0) {
+        letterTimeArrayRef.current.pop()
+      }
+      dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: {}, letterTimeArray: letterTimeArrayRef.current } })
+    }
+    // Add composition handling if needed
+  }, [dispatch])
+
   const onFinish = useCallback(() => {
+    // 重置 letterTimeArrayRef
+    letterTimeArrayRef.current = []
+
     if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
       // 用户完成当前单词
       if (currentWordExerciseCount < loopWordTimes - 1) {
@@ -66,18 +88,18 @@ export default function WordPanel() {
             type: TypingStateActionType.NEXT_WORD,
             payload: {
               updateReviewRecord,
+              letterTimeArray: letterTimeArrayRef.current, // Pass letterTimeArray here
             },
           })
         } else {
-          dispatch({ type: TypingStateActionType.NEXT_WORD })
+          dispatch({ type: TypingStateActionType.NEXT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } }) // Pass letterTimeArray here
         }
       }
     } else {
-      // 用户完成当前章节
-      dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
-      if (isReviewMode) {
-        setReviewModeInfo((old: ReviewModeInfo) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
-      }
+      // 最后一个单词或最后一轮循环
+      setCurrentWordExerciseCount(0)
+      // 章节完成，触发 FINISH_CHAPTER
+      dispatch({ type: TypingStateActionType.FINISH_CHAPTER, payload: { letterTimeArray: letterTimeArrayRef.current } })
     }
   }, [
     state.chapterData.index,
@@ -93,6 +115,8 @@ export default function WordPanel() {
 
   const onSkipWord = useCallback(
     (type: 'prev' | 'next') => {
+      // 重置 letterTimeArrayRef
+      letterTimeArrayRef.current = []
       if (type === 'prev') {
         dispatch({ type: TypingStateActionType.SKIP_2_WORD_INDEX, newIndex: prevIndex })
       }
@@ -200,39 +224,39 @@ export default function WordPanel() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 10,
-                  backdropFilter: 'blur(4px)',
-                  opacity: !state.isTyping ? 1 : 0,
-                  pointerEvents: !state.isTyping ? 'auto' : 'none',
-                  transition: 'opacity 0.3s',
+                  zIndex: 20,
+                  bgcolor: '#fff',
+                  opacity: 0.8,
+                  borderRadius: 1,
                 }}
               >
-                <Typography
-                  level="body-lg"
-                  sx={{ width: '100%', textAlign: 'center', color: 'text.secondary', userSelect: 'none' }}
-                >
-                  按任意键{state.timerData.time ? '继续' : '开始'}
-                </Typography>
+                <Typography level="h3">按下任意键开始练习</Typography>
               </Box>
             )}
-            <Box sx={{ position: 'relative' }}>
-              <WordComponent word={currentWord} onFinish={onFinish} key={wordComponentKey} />
-              {phoneticConfig.isOpen && <Phonetic word={currentWord} />}
-              <Translation
-                trans={currentWord.trans.join('；')}
-                showTrans={shouldShowTranslation}
-                onMouseEnter={() => handleShowTranslation(true)}
-                onMouseLeave={() => handleShowTranslation(false)}
-              />
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                maxWidth: '800px',
+                gap: 1,
+              }}
+            >
+              <Phonetic word={currentWord} />
+              <WordComponent word={currentWord} onFinish={onFinish} />
+              {shouldShowTranslation && (
+                <Translation
+                  trans={currentWord.trans.join('；')}
+                  showTrans={shouldShowTranslation}
+                  onMouseEnter={() => handleShowTranslation(true)}
+                  onMouseLeave={() => handleShowTranslation(false)}
+                />
+              )}
             </Box>
           </Box>
         )}
       </Box>
-
-      {/* 进度条 */}
-      <Box sx={{ width: '25%', mb: 5, mt: 'auto', opacity: state.isTyping ? 1 : 0, transition: 'opacity 0.3s' }}>
-        <Progress />
-      </Box>
+      <InputHandler updateInput={updateInput} />
     </Stack>
   )
 }

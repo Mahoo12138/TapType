@@ -16,8 +16,12 @@ export default function KeyEventHandler({ updateInput }: { updateInput: (updateO
         return
       }
 
-      if (isLegal(char) && !e.altKey && !e.ctrlKey && !e.metaKey) {
-        updateInput({ type: 'add', value: char, event: e })
+      if (char === 'Backspace') {
+        e.preventDefault()
+        updateInput({ type: 'delete', length: 1, letterTimeArray: [] })
+      } else if (isLegal(char) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        updateInput({ type: 'add', value: char, event: e, letterTimeArray: [] })
       }
     },
     [updateInput],

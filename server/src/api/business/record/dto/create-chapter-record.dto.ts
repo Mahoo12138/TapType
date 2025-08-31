@@ -6,10 +6,6 @@ export class CreateChapterRecordDto {
   dict: Uuid;
 
   @IsNumber()
-  @IsOptional()
-  chapter?: number | null;
-
-  @IsNumber()
   time: number;
 
   @IsInt()
@@ -27,8 +23,4 @@ export class CreateChapterRecordDto {
 
   @IsInt()
   wordNumber: number;
-
-  @IsBoolean()
-  @IsOptional()
-  isFinished?: boolean;
 }

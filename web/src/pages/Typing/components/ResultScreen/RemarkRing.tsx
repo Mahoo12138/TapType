@@ -1,6 +1,6 @@
 import clamp from '@/utils/clamp'
-import classNames from 'classnames'
 import { useMemo } from 'react'
+import { Box, Typography } from '@mui/joy'
 
 export type RemarkRingProps = {
   remark: string
@@ -16,41 +16,90 @@ export type RemarkRingProps = {
   size?: number
 }
 
+// Get the root font size for rem calculations
 const rootFontSize = parseInt(window.getComputedStyle(document.documentElement).getPropertyValue('font-size'))
 
 export default function RemarkRing({ remark, caption, percentage = null, size = 7 }: RemarkRingProps) {
+  // Calculate the clip path for the progress ring visualization
   const clipPath = useMemo((): string | undefined => {
     if (percentage === null) {
       return undefined
     }
+    
+    // Clamp percentage between 0 and 100
     const clamped = clamp(percentage, 0, 100)
+    
+    // If 100%, no need for clip path (full circle)
     if (clamped === 100) {
       return undefined
     }
+    
+    // Calculate the angle for the progress arc
     const alpha = Math.PI * 2 * (clamped / 100)
     const r = (rootFontSize * size) / 2
+    
+    // Create SVG path for the progress arc
     const path = `M ${r},0 A ${r},${r} 0 ${clamped > 50 ? 1 : 0},1 ${r + Math.sin(alpha) * r},${r + -Math.cos(alpha) * r} L ${r},${r} Z`
     return `path("${path}")`
   }, [percentage, size])
+
   return (
-    <div
-      className={classNames(
-        'relative flex flex-shrink-0 flex-col items-center justify-center rounded-full border-8 border-indigo-200 bg-transparent dark:border-gray-700',
-      )}
-      style={{
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        borderRadius: '50%',
+        border: '8px solid',
+        borderColor: 'primary.200',
+        bgcolor: 'transparent',
         width: `${size}rem`,
         height: `${size}rem`,
       }}
     >
+      {/* Progress ring overlay - only shown when percentage is provided */}
       {percentage !== null && (
-        <div
-          className="absolute -inset-2 rounded-full border-8 border-indigo-400 bg-transparent dark:border-indigo-500"
-          style={{ clipPath }}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '-8px',
+            left: '-8px',
+            right: '-8px',
+            bottom: '-8px',
+            borderRadius: '50%',
+            border: '8px solid',
+            borderColor: 'primary.400',
+            bgcolor: 'transparent',
+            clipPath,
+          }}
           aria-hidden
         />
       )}
-      <span className="text-xl tabular-nums text-gray-800 dark:text-gray-300">{remark}</span>
-      <span className="text-sm font-medium text-gray-600 dark:text-gray-500">{caption}</span>
-    </div>
+      
+      {/* Main remark text (e.g., "95%", "2:30", "120") */}
+      <Typography
+        level="h4"
+        sx={{
+          fontVariantNumeric: 'tabular-nums',
+          color: 'text.primary',
+        }}
+      >
+        {remark}
+      </Typography>
+      
+      {/* Caption text (e.g., "正确率", "章节耗时", "WPM") */}
+      <Typography
+        level="body-sm"
+        sx={{
+          fontWeight: 'medium',
+          color: 'text.secondary',
+        }}
+      >
+        {caption}
+      </Typography>
+    </Box>
   )
 }

@@ -4,7 +4,7 @@ import { fetcher } from './client';
 export interface WordResDto {
   id?: string;
   word: string;
-  definition: string;
+  definition: string[];
   examples?: string[];
   pronunciation: string;
   audioUrl?: string;

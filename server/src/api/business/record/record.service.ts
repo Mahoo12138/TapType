@@ -5,6 +5,7 @@ import { ChapterRecordEntity } from './entities/chapter-record.entity';
 import { WordRecordEntity } from './entities/word-record.entity';
 import { CreateChapterRecordDto } from './dto/create-chapter-record.dto';
 import { CreateWordRecordDto } from './dto/create-word-record.dto';
+import { CreateChapterWithWordsDto } from './dto/create-chapter-with-words.dto';
 import { ListChapterRecordReqDto } from './dto/list-chapter-record.req.dto';
 import { ListWordRecordReqDto } from './dto/list-word-record.req.dto';
 import { ChapterRecordResDto } from './dto/chapter-record.res.dto';
@@ -47,6 +48,48 @@ export class RecordService {
     return await this.wordRecordRepository.save(wordRecord);
   }
 
+  // 同时创建章节记录和单词记录
+  async createChapterWithWords(createDto: CreateChapterWithWordsDto, userId: Uuid): Promise<ChapterRecordEntity> {
+    // 1. 创建章节记录
+    const chapterRecord = new ChapterRecordEntity({
+      dict: createDto.dict,
+      time: createDto.time,
+      correctCount: createDto.correctCount,
+      wrongCount: createDto.wrongCount,
+      wordCount: createDto.wordCount,
+      correctWordIndexes: createDto.correctWordIndexes,
+      wordNumber: createDto.wordNumber,
+      userId,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+    
+    const savedChapterRecord = await this.chapterRecordRepository.save(chapterRecord);
+    
+    // 2. 创建单词记录
+    const wordRecords = createDto.wordRecords.map(wordDto => {
+      return new WordRecordEntity({
+        chapterRecordId: savedChapterRecord.id,
+        dictId: createDto.dict,
+        wordId: wordDto.wordId || null,
+        wordName: wordDto.wordName,
+        timing: wordDto.timing,
+        wrongCount: wordDto.wrongCount,
+        mistakes: wordDto.mistakes,
+        userId,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+    });
+    
+    if (wordRecords.length > 0) {
+      await this.wordRecordRepository.save(wordRecords);
+    }
+    
+    // 3. 返回包含单词记录的章节记录
+    return await this.findChapterRecordById(savedChapterRecord.id, userId);
+  }
+
   // 查询章节记录列表（带分页）
   async findAllChapterRecords(userId: Uuid, reqDto: ListChapterRecordReqDto): Promise<OffsetPaginatedDto<ChapterRecordResDto>> {
     const query = this.chapterRecordRepository
@@ -57,14 +100,6 @@ export class RecordService {
     // 添加可选过滤条件
     if (reqDto.dict) {
       query.andWhere('chapterRecord.dict = :dict', { dict: reqDto.dict });
-    }
-    
-    if (reqDto.chapter !== undefined) {
-      query.andWhere('chapterRecord.chapter = :chapter', { chapter: reqDto.chapter });
-    }
-    
-    if (reqDto.isFinished !== undefined) {
-      query.andWhere('chapterRecord.isFinished = :isFinished', { isFinished: reqDto.isFinished });
     }
     
     // 应用分页
@@ -90,10 +125,6 @@ export class RecordService {
     
     if (reqDto.chapterRecordId) {
       query.andWhere('wordRecord.chapterRecordId = :chapterRecordId', { chapterRecordId: reqDto.chapterRecordId });
-    }
-    
-    if (reqDto.chapter !== undefined) {
-      query.andWhere('wordRecord.chapter = :chapter', { chapter: reqDto.chapter });
     }
     
     if (reqDto.wordName) {

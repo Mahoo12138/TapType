@@ -46,14 +46,11 @@ export class WordRecordEntity extends AbstractEntity {
   @JoinColumn({ name: 'wordId' })
   word: Relation<WordEntity>;
 
-  @Column({ type: 'uuid', comment: '单词ID', nullable: true })
+  @Column({ type: 'uuid', comment: '单词ID' })
   wordId: Uuid;
 
   @Column({ length: 100, comment: '练习的单词' })
   wordName: string;
-
-  @Column({ type: 'int', nullable: true, comment: '章节索引，从0开始，错题等场景为null' })
-  chapter: number | null;
 
   @Column({ type: 'int', array: true, comment: '每个字母的输入时间差（毫秒）' })
   timing: number[];

@@ -35,6 +35,17 @@ export interface WordDictationConfig {
   openBy: string
 }
 
+export interface RandomConfig {
+  isOpen: boolean
+}
+
+export interface InfoPanelState {
+  donate: boolean
+  vsc: boolean
+  community: boolean
+  redBook: boolean
+}
+
 interface TypingConfigState {
   phoneticConfig: PhoneticConfig
   pronunciationConfig: PronunciationConfig
@@ -48,6 +59,8 @@ interface TypingConfigState {
   isIgnoreCase: boolean
   isShowAnswerOnHover: boolean
   currentChapter: number
+  randomConfig: RandomConfig
+  infoPanelState: InfoPanelState
   setPhoneticConfig: (config: PhoneticConfig) => void
   setPronunciationConfig: (config: PronunciationConfig) => void
   setFontSizeConfig: (config: FontSizeConfig) => void
@@ -60,6 +73,8 @@ interface TypingConfigState {
   setIsIgnoreCase: (val: boolean) => void
   setIsShowAnswerOnHover: (val: boolean) => void
   setCurrentChapter: (val: number) => void
+  setRandomConfig: (config: RandomConfig) => void
+  setInfoPanelState: (updater: (old: InfoPanelState) => InfoPanelState) => void
 }
 
 export const useTypingConfigStore = create<TypingConfigState>((set) => ({
@@ -84,6 +99,13 @@ export const useTypingConfigStore = create<TypingConfigState>((set) => ({
   isIgnoreCase: true,
   isShowAnswerOnHover: true,
   currentChapter: 0,
+  randomConfig: { isOpen: false },
+  infoPanelState: {
+    donate: false,
+    vsc: false,
+    community: false,
+    redBook: false,
+  },
   setPhoneticConfig: (config) => set({ phoneticConfig: config }),
   setPronunciationConfig: (config) => set({ pronunciationConfig: config }),
   setFontSizeConfig: (config) => set({ fontSizeConfig: config }),
@@ -96,4 +118,6 @@ export const useTypingConfigStore = create<TypingConfigState>((set) => ({
   setIsIgnoreCase: (val) => set({ isIgnoreCase: val }),
   setIsShowAnswerOnHover: (val) => set({ isShowAnswerOnHover: val }),
   setCurrentChapter: (val) => set({ currentChapter: val }),
+  setRandomConfig: (config) => set({ randomConfig: config }),
+  setInfoPanelState: (updater) => set((state) => ({ infoPanelState: updater(state.infoPanelState) })),
 })) 

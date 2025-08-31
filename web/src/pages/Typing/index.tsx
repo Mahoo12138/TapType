@@ -8,16 +8,26 @@ import type { DictionaryResDto, WordResDto } from '@/api/dictionary'
 import type { WordWithIndex } from '@/typings'
 
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useImmerReducer } from 'use-immer'
 import { Box, Stack, CircularProgress, Container } from '@mui/joy'
 import { useQuery } from '@tanstack/react-query'
 import { isLegal } from '@/utils'
 import Speed from './components/Speed'
+import { useConfetti } from './hooks/useConfetti'
+import ResultScreen from './components/ResultScreen'
+import { useTypingConfigStore } from '@/store/typing'
+import { useSaveChapterRecord } from './hooks/useSaveChapterRecord'
 
 const Typing: React.FC = () => {
   const [state, dispatch] = useImmerReducer(typingReducer, structuredClone(initialState))
-  const [currentDict, setCurrentDict] = useState<DictionaryResDto | null>(null)
+  const {
+    currentDictInfo,
+    setCurrentDictInfo
+  } = useTypingConfigStore();
+  
+  const { saveChapterRecord, isSaving } = useSaveChapterRecord()
+  const hasSavedChapterRef = useRef(false); // New ref to track if save was triggered for current completion
 
   // 1. 获取所有词典
   const {
@@ -32,7 +42,7 @@ const Typing: React.FC = () => {
   // 2. 选择第一个词典
   useEffect(() => {
     if (dictData && dictData.data && dictData.data.length > 0) {
-      setCurrentDict(dictData.data[0])
+      setCurrentDictInfo(dictData.data[0])
     }
   }, [dictData])
 
@@ -42,31 +52,34 @@ const Typing: React.FC = () => {
     isLoading: isWordsLoading,
     isError: isWordsError,
   } = useQuery({
-    queryKey: currentDict ? ['words', currentDict.id] : [],
-    queryFn: () => currentDict ? fetchWordsByDictionary(currentDict.id, { page: 1, limit: 999 }) : Promise.resolve({ data: [] }),
-    enabled: !!currentDict
+    queryKey: currentDictInfo ? ['words', currentDictInfo.id] : [],
+    queryFn: () => currentDictInfo ? fetchWordsByDictionary(currentDictInfo.id, { page: 1, limit: 10 }) : Promise.resolve({ data: [] }),
+    enabled: !!currentDictInfo
   })
 
-  const isLoading = isDictLoading || (currentDict && isWordsLoading)
-
+  const isLoading = isDictLoading || (currentDictInfo && isWordsLoading)
 
   // 4. 单词加载后初始化打字状态
   useEffect(() => {
-    if (wordsData && wordsData.data && currentDict) {
-      const words: WordWithIndex[] = (wordsData.data as WordResDto[]).map((w, idx) => ({
-        name: w.word,
-        trans: w.definition ? [w.definition] : [],
-        usphone: w.pronunciation || '',
-        ukphone: w.pronunciation || '',
-        index: idx,
-      }))
+    if (wordsData && wordsData.data && currentDictInfo) {
+      const words: WordWithIndex[] = (wordsData.data as WordResDto[]).map((w, idx) => {
+        const [usphone, ukphone] = w.pronunciation.split(',') || ['', '']
+
+        return {
+          id: w.id,
+          name: w.word,
+          trans: w.definition,
+          usphone,
+          ukphone,
+          index: idx,
+        }
+      })
       dispatch({
         type: TypingStateActionType.SETUP_CHAPTER,
         payload: { words, shouldShuffle: false },
       })
     }
-  }, [wordsData, currentDict, dispatch])
-
+  }, [wordsData, currentDictInfo, dispatch])
 
   useEffect(() => {
     if (!state.isTyping) {
@@ -82,6 +95,56 @@ const Typing: React.FC = () => {
       return () => window.removeEventListener('keydown', onKeyDown)
     }
   }, [state.isTyping, isLoading, dispatch])
+
+  useEffect(() => {
+    // 当用户完成章节后且完成 word Record 数据保存，记录 chapter Record 数据,
+    // Add hasSavedChapterRef.current to prevent infinite calls after a single chapter completion.
+    if (state.isFinished && !state.isSavingRecord && !isSaving && wordsData?.data && !hasSavedChapterRef.current) {
+      console.log('saveChapterRecord logic executing once for finished chapter.');
+      hasSavedChapterRef.current = true; // Set flag to true to prevent re-execution for this completion
+
+      const words: WordWithIndex[] = (wordsData.data as WordResDto[]).map((w, idx) => {
+        const [usphone, ukphone] = w.pronunciation.split(',') || ['', '']
+
+        return {
+          id: w.id,
+          name: w.word,
+          trans: w.definition,
+          usphone,
+          ukphone,
+          index: idx,
+        }
+      })
+
+      saveChapterRecord({ state, words })
+    }
+  }, [state.isFinished, state.isSavingRecord, isSaving, wordsData, saveChapterRecord])
+
+  useEffect(() => {
+    // 启动计时器
+    let intervalId: number
+    if (state.isTyping) {
+      intervalId = window.setInterval(() => {
+        dispatch({ type: TypingStateActionType.TICK_TIMER })
+      }, 1000)
+    }
+    return () => clearInterval(intervalId)
+  }, [state.isTyping, dispatch])
+
+  useEffect(() => {
+    // 当用户切换到其他窗口时，暂停打字状态
+    const onBlur = () => {
+      dispatch({ type: TypingStateActionType.SET_IS_TYPING, payload: false })
+    }
+    // window.addEventListener('blur', onBlur)
+
+    return () => {
+      // window.removeEventListener('blur', onBlur)
+    }
+  }, [dispatch])
+
+  // 练习完成后展示 confetti 特效
+  useConfetti(state.isFinished)
 
 
   return (
@@ -118,7 +181,7 @@ const Typing: React.FC = () => {
                 </Stack>
               ) : (
                 !state.isFinished && <>
-                  <WordPanel /> 
+                  <WordPanel />
                   <Speed />
                 </>
               )}
@@ -126,6 +189,7 @@ const Typing: React.FC = () => {
           </Box>
         </Container>
       </Layout>
+      {state.isFinished && <ResultScreen />}
     </TypingContext.Provider>
   )
 }

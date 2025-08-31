@@ -13,6 +13,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChapterRecordResDto } from './dto/chapter-record.res.dto';
 import { CreateChapterRecordDto } from './dto/create-chapter-record.dto';
+import { CreateChapterWithWordsDto } from './dto/create-chapter-with-words.dto';
 import { CreateWordRecordDto } from './dto/create-word-record.dto';
 import { ListChapterRecordReqDto } from './dto/list-chapter-record.req.dto';
 import { ListWordRecordReqDto } from './dto/list-word-record.req.dto';
@@ -37,6 +38,16 @@ export class RecordController {
     @CurrentUser('id') userId: Uuid,
   ): Promise<ChapterRecordEntity> {
     return await this.recordService.createChapterRecord(createDto, userId);
+  }
+
+  @Post('chapter-with-words')
+  @ApiOperation({ summary: '创建章节记录（包含单词记录）' })
+  @ApiResponse({ status: 201, type: ChapterRecordEntity })
+  async createChapterWithWords(
+    @Body() createDto: CreateChapterWithWordsDto,
+    @CurrentUser('id') userId: Uuid,
+  ): Promise<ChapterRecordEntity> {
+    return await this.recordService.createChapterWithWords(createDto, userId);
   }
 
   @Post('word')

@@ -24,6 +24,7 @@ export type UserInputLog = {
   correctCount: number
   wrongCount: number
   LetterMistakes: LetterMistakes
+  letterTimeArray: number[]
 }
 
 export type TimerData = {

@@ -1,7 +1,7 @@
 import { PageOptionsDto } from '@/common/dto/offset-pagination/page-options.dto';
 import { Uuid } from '@/common/types/common.type';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class ListWordRecordReqDto extends PageOptionsDto {
   @IsOptional()
@@ -11,11 +11,6 @@ export class ListWordRecordReqDto extends PageOptionsDto {
   @IsOptional()
   @IsUUID()
   chapterRecordId?: Uuid;
-
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  chapter?: number;
 
   @IsOptional()
   @IsString()

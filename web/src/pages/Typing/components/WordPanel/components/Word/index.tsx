@@ -14,7 +14,6 @@ import { TypingContext, TypingStateActionType } from '@/pages/Typing/store'
 import { useTypingConfigStore } from '@/store/typing'
 import type { Word } from '@/typings'
 import { CTRL } from '@/utils'
-import { useSaveWordRecord } from '@/utils/db'
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useImmer } from 'use-immer'
@@ -45,7 +44,6 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const currentLanguageCategory = (currentDictInfo as any)?.languageCategory || 'en'
   const currentChapter = useTypingConfigStore(s => s.currentChapter)
 
-  const saveWordRecord = useSaveWordRecord()
   const [playKeySound, playBeepSound, playHintSound] = useKeySounds()
   const [isHoveringWord, setIsHoveringWord] = useState(false)
   const [showTipAlert, setShowTipAlert] = useState(false)
@@ -194,8 +192,6 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         })
         playKeySound()
       }
-
-      dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD })
     } else {
       playBeepSound()
       setWordState((state) => {
@@ -211,8 +207,6 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           state.letterMistake[inputLength - 1] = [inputChar]
         }
 
-        const currentState = JSON.parse(JSON.stringify(state))
-        dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: currentState.letterMistake } })
       })
 
       if (currentChapter === 0 && state.chapterData.index === 0 && wordState.wrongCount >= 3) {
@@ -240,12 +234,12 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   useEffect(() => {
     if (wordState.isFinished) {
       dispatch({ type: TypingStateActionType.SET_IS_SAVING_RECORD, payload: true })
-      saveWordRecord({
-        word: word.name,
-        wrongCount: wordState.wrongCount,
-        letterTimeArray: wordState.letterTimeArray,
-        letterMistake: wordState.letterMistake,
-      })
+      // saveWordRecord({
+      //   word: word.name,
+      //   wrongCount: wordState.wrongCount,
+      //   letterTimeArray: wordState.letterTimeArray,
+      //   letterMistake: wordState.letterMistake,
+      // })
 
       onFinish()
     }

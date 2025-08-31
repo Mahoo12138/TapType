@@ -15,15 +15,18 @@ export type WordAddAction = {
   type: 'add'
   value: string
   event: FormEvent<HTMLTextAreaElement> | KeyboardEvent
+  letterTimeArray: number[]
 }
 
 export type WordDeleteAction = {
   type: 'delete'
   length: number
+  letterTimeArray: number[]
 }
 
 // composition api is not ready yet
 export type WordCompositionAction = {
   type: 'composition'
   value: string
+  letterTimeArray: number[]
 }
