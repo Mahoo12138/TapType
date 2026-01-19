@@ -1,7 +1,7 @@
 import { type FallbackLngObjList } from "i18next";
 import { useTranslation } from "react-i18next";
 import i18n, { locales, type TLocale } from "@/i18n";
-import enTranslation from "@shared/common/locales/en.json";
+import enTranslation from "@shared/common/locales/en/ui.json";
 import type { Locale } from '@shared/typings';
 
 export const findNearestMatchedLanguage = (language: string): Locale => {

@@ -61,7 +61,7 @@ export interface WordDictationConfig {
 
 export interface ReviewModeInfo {
   isReviewMode: boolean;
-  reviewRecord?: ReviewRecord;
+  reviewRecord?: any;
 }
 
 export interface TypingConfigState {

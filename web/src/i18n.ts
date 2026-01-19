@@ -13,10 +13,10 @@ const fallbacks = {
 const LazyImportPlugin: BackendModule = {
   type: "backend",
   init: function () { },
-  read: function (language, _, callback) {
+  read: function (language, namespace, callback) {
     const matchedLanguage = findNearestMatchedLanguage(language);
-    const modules = import.meta.glob('@shared/common/locales/*.json');
-    const path = Object.keys(modules).find(path => path.includes(`${matchedLanguage}.json`));
+    const modules = import.meta.glob('@shared/common/locales/**/*.json');
+    const path = Object.keys(modules).find(path => path.endsWith(`/${matchedLanguage}/${namespace}.json`));
     
     if (path && modules[path]) {
       modules[path]()
@@ -26,9 +26,11 @@ const LazyImportPlugin: BackendModule = {
         })
         .catch((err) => {
           console.log(`Fallback to English for language: ${language}. Error: ${err}`);
+          callback(err, null);
         });
     } else {
-        console.log(`Language file not found for: ${matchedLanguage}`);
+        // console.log(`Language file not found for: ${matchedLanguage}`);
+        callback(null, null);
     }
   },
 };
@@ -40,6 +42,8 @@ i18n
     detection: {
       order: ["navigator"],
     },
+    ns: ['ui', 'server', 'user'],
+    defaultNS: 'ui',
     fallbackLng: {
       ...fallbacks,
       ...{ default: ["en"] },

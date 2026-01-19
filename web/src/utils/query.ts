@@ -1,5 +1,5 @@
 import type { Dictionary, Word } from "@/typings";
-import { QueryFunction } from "@tanstack/react-query";
+import { type QueryFunction } from "@tanstack/react-query";
 
 export const dictListQueryFn: QueryFunction<Dictionary[], string[]> = async (
   context
