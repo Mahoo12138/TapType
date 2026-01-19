@@ -1,8 +1,14 @@
-import { FC } from "react";
+import { type FC } from "react";
 import { GlobeIcon } from 'lucide-react';
-import Select from '@mui/joy/Select';
-import Option from '@mui/joy/Option';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { locales } from "@/i18n";
+import type { Locale } from '@shared/typings';
+import { cn } from "@/lib/utils";
 
 interface Props {
   value: Locale;
@@ -10,39 +16,45 @@ interface Props {
   onChange: (locale: Locale) => void;
 }
 
-// 如需自定义样式，可用 emotion/styled
-// const StyledSelect = styled(Select)`
-//   min-width: 180px;
-// `;
 
 const LocaleSelect: FC<Props> = ({ onChange, value, className }) => {
-  const handleSelectChange = (_: any, newValue: Locale | null) => {
+  const handleSelectChange = (newValue: Locale | null) => {
     if (newValue) onChange(newValue);
+  };
+
+  const getLanguageName = (locale: string) => {
+    try {
+      const languageName = new Intl.DisplayNames([locale], {
+        type: "language",
+      }).of(locale);
+      return languageName
+        ? languageName.charAt(0).toUpperCase() + languageName.slice(1)
+        : locale;
+    } catch {
+      return locale;
+    }
   };
 
   return (
     <Select
       value={value}
-      onChange={handleSelectChange}
-      startDecorator={
-          <GlobeIcon fontSize="small" />
-      }
-      sx={{ minWidth: 180 }}
-      className={className}
-      placeholder="Language"
+      onValueChange={handleSelectChange}
     >
-      {locales.map((locale) => {
-        const languageName = new Intl.DisplayNames([locale], {
-          type: "language",
-        }).of(locale);
-        return (
-          <Option key={locale} value={locale}>
-            {languageName
-              ? languageName.charAt(0).toUpperCase() + languageName.slice(1)
-              : locale}
-          </Option>
-        );
-      })}
+      <SelectTrigger className={cn("w-45", className)}>
+        <div className="flex items-center gap-2">
+            <GlobeIcon className="size-4" />
+            <span>{getLanguageName(value)}</span>
+        </div>
+      </SelectTrigger>
+      <SelectContent>
+        {locales.map((locale) => {
+          return (
+            <SelectItem key={locale} value={locale}>
+              {getLanguageName(locale)}
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
     </Select>
   );
 };

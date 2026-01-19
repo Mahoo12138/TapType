@@ -1,25 +1,39 @@
-import { recordAnalysisAction } from '@/utils'
 import { useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import ChartPie from '~icons/heroicons/chart-pie-solid'
+import { PieChartIcon } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const AnalysisButton = () => {
   const navigate = useNavigate()
 
   const toAnalysis = useCallback(() => {
-    navigate('/analysis')
-    recordAnalysisAction('open')
+    navigate({ to: '/analysis' })
   }, [navigate])
 
   return (
-    <button
-      type="button"
-      onClick={toAnalysis}
-      className={`flex items-center justify-center rounded p-[2px] text-lg text-indigo-500 outline-none transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white`}
-      title="查看数据统计"
-    >
-      <ChartPie className="icon" />
-    </button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toAnalysis}
+            className="h-auto w-auto p-0.5 text-indigo-500 hover:bg-indigo-400 hover:text-white"
+          >
+            <PieChartIcon className="size-[18px]" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>查看数据统计</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

@@ -1,55 +1,64 @@
-// import Tooltip from '@/components/Tooltip'
-
-import { useAtom } from 'jotai'
 import type React from 'react'
 import { useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Box, Stack, IconButton, Typography, Tooltip } from '@mui/joy'
 import { Github } from 'lucide-react'
-
-import { infoPanelStateAtom } from '@/store'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useTypingConfigStore } from '@/store/typing'
 import type { InfoPanelType } from '@/typings'
+import { Button } from "@/components/ui/button"
 
 const Footer: React.FC = () => {
-  const [infoPanelState, setInfoPanelState] = useAtom(infoPanelStateAtom)
+  const setInfoPanelState = useTypingConfigStore(s => s.setInfoPanelState)
   const navigate = useNavigate()
 
   const handleOpenInfoPanel = useCallback(
     (modalType: InfoPanelType) => {
-      setInfoPanelState((state) => ({ ...state, [modalType]: true }))
+      setInfoPanelState({ [modalType]: true })
     },
     [setInfoPanelState],
   )
 
   const handleCloseInfoPanel = useCallback(
     (modalType: InfoPanelType) => {
-      setInfoPanelState((state) => ({ ...state, [modalType]: false }))
+      setInfoPanelState({ [modalType]: false })
     },
     [setInfoPanelState],
   )
 
   return (
-    <Box component="footer" sx={{ width: '100%', py: 2, mt: 4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Tooltip title="前往 GitHub 项目主页">
-          <IconButton
-            component="a"
-            href="https://github.com/mahoo12138/qwerty-learner-next"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="前往 GitHub 项目主页"
-            variant="plain"
-            color="neutral"
-            sx={{ fontSize: 22 }}
-          >
-            <Github size={22} />
-          </IconButton>
-        </Tooltip>
-        <Typography level="body-sm" sx={{ userSelect: 'none', bgcolor: 'neutral.softBg', px: 1, borderRadius: 4, fontSize: 12, color: 'text.secondary' }}>
-          Build <span style={{ userSelect: 'all' }}>{typeof LATEST_COMMIT_HASH !== 'undefined' ? LATEST_COMMIT_HASH : ''}</span>
-        </Typography>
-      </Stack>
-    </Box>
+    <footer className="mt-4 flex w-full items-center justify-center py-2">
+      <div className="flex flex-row items-center gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="h-auto w-auto p-2"
+              >
+                <a
+                  href="https://github.com/mahoo12138/qwerty-learner-next"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="前往 GitHub 项目主页"
+                >
+                  <Github size={22} />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>前往 GitHub 项目主页</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </footer>
   )
 }
 

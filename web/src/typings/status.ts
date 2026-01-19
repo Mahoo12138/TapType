@@ -1,4 +1,4 @@
-export interface StatusData {
+export interface Status {
   settings: any[];
   host: string;
 }

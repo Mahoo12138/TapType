@@ -2,7 +2,14 @@ import { SoundIcon } from '@/components/WordPronunciationIcon/SoundIcon'
 import useSpeech from '@/hooks/useSpeech'
 import { useTypingConfigStore } from '@/store/typing'
 import { useCallback, useMemo } from 'react'
-import { Box, Typography, IconButton, Tooltip } from '@mui/joy'
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { cn } from '@/lib/utils'
 
 export type TranslationProps = {
   trans: string
@@ -24,39 +31,40 @@ export default function Translation({ trans, showTrans = true, onMouseEnter, onM
   }, [speak])
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pb: 2,
-        pt: 2.5,
-      }}
+    <div
+      className="flex items-center justify-center pb-4 pt-5"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <Typography
-        level="body-md"
-        sx={{
-          maxWidth: 600,
-          textAlign: 'center',
-          fontFamily: 'sans-serif',
-          color: 'text.primary',
-          transition: 'color 0.3s',
-          pl: isShowTransRead ? 2 : 0,
-          userSelect: isTextSelectable ? 'text' : 'none',
-          fontSize: fontSizeConfig.translateFont,
-        }}
+      <p
+        className={cn(
+          "max-w-[600px] text-center font-sans text-foreground transition-colors duration-300",
+          isShowTransRead ? "pl-2" : "",
+          isTextSelectable ? "select-text" : "select-none"
+        )}
+        style={{ fontSize: fontSizeConfig.translateFont }}
       >
         {showTrans ? trans : '\u00A0'}
-      </Typography>
+      </p>
       {isShowTransRead && showTrans && (
-        <Tooltip title="朗读释义">
-          <IconButton size="sm" variant="plain" onClick={handleClickSoundIcon} sx={{ ml: 1 }}>
-            <SoundIcon animated={speaking} />
-          </IconButton>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleClickSoundIcon}
+                className="ml-2"
+              >
+                <SoundIcon animated={speaking} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>朗读释义</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
-    </Box>
+    </div>
   )
 }

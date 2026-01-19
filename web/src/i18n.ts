@@ -1,9 +1,8 @@
-import i18n, { BackendModule, FallbackLng, FallbackLngObjList } from "i18next";
-import { orderBy } from "lodash-es";
+import i18n, { type BackendModule, type FallbackLng, type FallbackLngObjList } from "i18next";
 import { initReactI18next } from "react-i18next";
 import { findNearestMatchedLanguage } from "./utils/i18n";
 
-export const locales = orderBy(["en", "zh-Hans"]);
+export const locales = ["en", "zh-Hans"]
 
 const fallbacks = {
   "zh-HK": ["zh-Hant", "en"],
@@ -13,16 +12,24 @@ const fallbacks = {
 
 const LazyImportPlugin: BackendModule = {
   type: "backend",
-  init: function () {},
+  init: function () { },
   read: function (language, _, callback) {
     const matchedLanguage = findNearestMatchedLanguage(language);
-    import(`./locales/${matchedLanguage}.json`)
-      .then((translation: any) => {
-        callback(null, translation);
-      })
-      .catch(() => {
-        // Fallback to English.
-      });
+    const modules = import.meta.glob('@shared/common/locales/*.json');
+    const path = Object.keys(modules).find(path => path.includes(`${matchedLanguage}.json`));
+    
+    if (path && modules[path]) {
+      modules[path]()
+        .then((module: any) => {
+          // JSON modules usually export default
+          callback(null, module.default || module);
+        })
+        .catch((err) => {
+          console.log(`Fallback to English for language: ${language}. Error: ${err}`);
+        });
+    } else {
+        console.log(`Language file not found for: ${matchedLanguage}`);
+    }
   },
 };
 

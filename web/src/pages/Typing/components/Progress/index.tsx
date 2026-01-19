@@ -1,6 +1,6 @@
 import { TypingContext } from '../../store'
 import { useContext, useEffect, useState } from 'react'
-import { Box, LinearProgress } from '@mui/joy'
+import { cn } from '@/lib/utils'
 
 export default function Progress({ className }: { className?: string }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
@@ -10,9 +10,9 @@ export default function Progress({ className }: { className?: string }) {
 
   // 可自定义颜色
   const colorSwitcher: { [key: number]: string } = {
-    0: '#C7D2FE', // indigo-200
-    1: '#A5B4FC', // indigo-300
-    2: '#818CF8', // indigo-400
+    0: 'bg-indigo-200',
+    1: 'bg-indigo-300',
+    2: 'bg-indigo-400',
   }
 
   useEffect(() => {
@@ -23,21 +23,16 @@ export default function Progress({ className }: { className?: string }) {
   }, [state.chapterData.index, state.chapterData.words.length])
 
   return (
-    <Box className={className} sx={{ position: 'relative', width: '100%', pt: 1 }}>
-      <LinearProgress
-        determinate
-        value={progress}
-        sx={{
-          // height: 8,
-          borderRadius: 8,
-          backgroundColor: '#E0E7FF', // indigo-100
-          '& .MuiLinearProgress-bar': {
-            backgroundColor: colorSwitcher[phase] ?? '#C7D2FE',
-            transition: 'width 0.3s',
-            borderRadius: 8,
-          },
-        }}
-      />
-    </Box>
+    <div className={cn('relative w-full pt-1', className)}>
+      <div className="h-2 w-full overflow-hidden rounded-lg bg-indigo-100">
+        <div
+          className={cn(
+            'h-full rounded-lg transition-all duration-300 ease-in-out',
+            colorSwitcher[phase] ?? 'bg-indigo-200'
+          )}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
   )
 }

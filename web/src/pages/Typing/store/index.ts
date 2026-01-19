@@ -1,11 +1,12 @@
 import type { TypingState, UserInputLog } from './type'
 import type { WordWithIndex } from '@/typings'
-import type { LetterMistakes } from '@/utils/db/record'
-import '@/utils/db/review-record'
-import { mergeLetterMistake } from '@/utils/db/utils'
+// import type { LetterMistakes } from '@/utils/db/record'
+// import '@/utils/db/review-record'
+// import { mergeLetterMistake } from '@/utils/db/utils'
 import shuffle from '@/utils/shuffle'
 import { createContext } from 'react'
 
+type LetterMistakes = any
 export const initialState: TypingState = {
   chapterData: {
     words: [],
@@ -91,7 +92,7 @@ export type TypingStateAction =
 
 type Dispatch = (action: TypingStateAction) => void
 
-export const typingReducer = (state: TypingState, action: TypingStateAction) => {
+export const typingReducer = (state: TypingState, action: TypingStateAction): TypingState => {
   switch (action.type) {
     case TypingStateActionType.SETUP_CHAPTER: {
       const newState = structuredClone(initialState)
@@ -107,79 +108,146 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       return newState
     }
     case TypingStateActionType.SET_IS_SKIP:
-      state.isShowSkip = action.payload
-      break
+      return { ...state, isShowSkip: action.payload }
+
     case TypingStateActionType.SET_IS_TYPING:
-      state.isTyping = action.payload
-      break
+      return { ...state, isTyping: action.payload }
 
     case TypingStateActionType.TOGGLE_IS_TYPING:
-      state.isTyping = !state.isTyping
-      break
-    case TypingStateActionType.REPORT_CORRECT_WORD: {
-      state.chapterData.correctCount += 1
+      return { ...state, isTyping: !state.isTyping }
 
-      const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
-      wordLog.correctCount += 1
+    case TypingStateActionType.REPORT_CORRECT_WORD: {
+      const { index } = state.chapterData
+      const newUserInputLogs = state.chapterData.userInputLogs.map((log, i) => {
+        if (i === index) {
+          return {
+            ...log,
+            correctCount: log.correctCount + 1,
+            letterTimeArray: action.payload?.letterTimeArray ? [...action.payload.letterTimeArray] : log.letterTimeArray
+          }
+        }
+        return log
+      })
+
       console.log('REPORT_CORRECT_WORD action received:', action);
-      if (action.payload && action.payload.letterTimeArray) {
-        wordLog.letterTimeArray = [...action.payload.letterTimeArray]
+      
+      return {
+        ...state,
+        chapterData: {
+          ...state.chapterData,
+          correctCount: state.chapterData.correctCount + 1,
+          userInputLogs: newUserInputLogs
+        }
       }
-      break
     }
     case TypingStateActionType.REPORT_WRONG_WORD: {
-      state.chapterData.wrongCount += 1
+      const { index } = state.chapterData
+      const { letterMistake, letterTimeArray } = action.payload
 
-      const letterMistake = action.payload.letterMistake
-      const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
-      wordLog.wrongCount += 1
-      wordLog.LetterMistakes = mergeLetterMistake(wordLog.LetterMistakes, letterMistake)
+      const newUserInputLogs = state.chapterData.userInputLogs.map((log, i) => {
+        if (i === index) {
+          return {
+            ...log,
+            wrongCount: log.wrongCount + 1,
+            // LetterMistakes: mergeLetterMistake(log.LetterMistakes, letterMistake),
+            letterTimeArray: letterTimeArray ? [...letterTimeArray] : log.letterTimeArray
+          }
+        }
+        return log
+      })
+
       console.log('REPORT_WRONG_WORD action received:', action);
-      if (action.payload && action.payload.letterTimeArray) {
-        wordLog.letterTimeArray = [...action.payload.letterTimeArray]
+
+      return {
+        ...state,
+        chapterData: {
+          ...state.chapterData,
+          wrongCount: state.chapterData.wrongCount + 1,
+          userInputLogs: newUserInputLogs
+        }
       }
-      break
     }
     case TypingStateActionType.NEXT_WORD: {
-      state.chapterData.index += 1
-      state.chapterData.wordCount += 1
-      state.isShowSkip = false
-
       if (action?.payload?.updateReviewRecord) {
         action.payload.updateReviewRecord(state)
       }
-      break
+
+      return {
+        ...state,
+        isShowSkip: false,
+        chapterData: {
+          ...state.chapterData,
+          index: state.chapterData.index + 1,
+          wordCount: state.chapterData.wordCount + 1,
+        }
+      }
     }
     case TypingStateActionType.LOOP_CURRENT_WORD:
-      state.isShowSkip = false
-      state.chapterData.wordCount += 1
-      break
+      return {
+        ...state,
+        isShowSkip: false,
+        chapterData: {
+          ...state.chapterData,
+          wordCount: state.chapterData.wordCount + 1
+        }
+      }
+
     case TypingStateActionType.FINISH_CHAPTER: {
-      state.chapterData.wordCount += 1
-      state.isTyping = false
-      state.isFinished = true
-      state.isShowSkip = false
-      break
+      return {
+        ...state,
+        isTyping: false,
+        isFinished: true,
+        isShowSkip: false,
+        chapterData: {
+          ...state.chapterData,
+          wordCount: state.chapterData.wordCount + 1
+        }
+      }
     }
     case TypingStateActionType.SKIP_WORD: {
       const newIndex = state.chapterData.index + 1
-      if (newIndex >= state.chapterData.words.length) {
-        state.isTyping = false
-        state.isFinished = true
-      } else {
-        state.chapterData.index = newIndex
+      const isFinished = newIndex >= state.chapterData.words.length
+
+      if (isFinished) {
+        return {
+          ...state,
+          isTyping: false,
+          isFinished: true,
+          isShowSkip: false
+        }
       }
-      state.isShowSkip = false
-      break
+
+      return {
+        ...state,
+        isShowSkip: false,
+        chapterData: {
+          ...state.chapterData,
+          index: newIndex
+        }
+      }
     }
     case TypingStateActionType.SKIP_2_WORD_INDEX: {
       const newIndex = action.newIndex
-      if (newIndex >= state.chapterData.words.length) {
-        state.isTyping = false
-        state.isFinished = true
+      const isFinished = newIndex >= state.chapterData.words.length
+
+      if (isFinished) {
+        return {
+          ...state,
+          isTyping: false,
+          isFinished: true,
+          chapterData: {
+            ...state.chapterData,
+            index: newIndex
+          }
+        }
       }
-      state.chapterData.index = newIndex
-      break
+      return {
+        ...state,
+        chapterData: {
+          ...state.chapterData,
+          index: newIndex
+        }
+      }
     }
     case TypingStateActionType.REPEAT_CHAPTER: {
       const newState = structuredClone(initialState)
@@ -197,8 +265,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       return newState
     }
     case TypingStateActionType.TOGGLE_TRANS_VISIBLE:
-      state.isTransVisible = !state.isTransVisible
-      break
+      return { ...state, isTransVisible: !state.isTransVisible }
+
     case TypingStateActionType.TICK_TIMER: {
       const increment = action.addTime === undefined ? 1 : action.addTime
       const newTime = state.timerData.time + increment
@@ -207,26 +275,33 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
           ? 1
           : state.chapterData.correctCount + state.chapterData.wrongCount
 
-      state.timerData.time = newTime
-      state.timerData.accuracy = Math.round((state.chapterData.correctCount / inputSum) * 100)
-      state.timerData.wpm = Math.round((state.chapterData.wordCount / newTime) * 60)
-      break
+      return {
+        ...state,
+        timerData: {
+          ...state.timerData,
+          time: newTime,
+          accuracy: Math.round((state.chapterData.correctCount / inputSum) * 100),
+          wpm: Math.round((state.chapterData.wordCount / newTime) * 60)
+        }
+      }
     }
     case TypingStateActionType.ADD_WORD_RECORD_ID: {
-      state.chapterData.wordRecordIds.push(action.payload)
-      break
+      return {
+        ...state,
+        chapterData: {
+          ...state.chapterData,
+          wordRecordIds: [...state.chapterData.wordRecordIds, action.payload]
+        }
+      }
     }
     case TypingStateActionType.SET_IS_SAVING_RECORD: {
-      state.isSavingRecord = action.payload
-      break
+      return { ...state, isSavingRecord: action.payload }
     }
     case TypingStateActionType.SET_IS_LOOP_SINGLE_WORD: {
-      state.isLoopSingleWord = action.payload
-      break
+      return { ...state, isLoopSingleWord: action.payload }
     }
     case TypingStateActionType.TOGGLE_IS_LOOP_SINGLE_WORD: {
-      state.isLoopSingleWord = !state.isLoopSingleWord
-      break
+      return { ...state, isLoopSingleWord: !state.isLoopSingleWord }
     }
     default: {
       return state

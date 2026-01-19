@@ -9,12 +9,16 @@ import shareImage7 from '@/assets/sharePic/image-7.png'
 import shareImage8 from '@/assets/sharePic/image-8.png'
 import shareImage9 from '@/assets/sharePic/image-9.png'
 import keyboardSvg from '@/assets/sharePic/keyBackground.svg'
-import { currentChapterAtom, currentDictInfoAtom } from '@/store'
+import { useDictStore, getCurrentDictInfo } from '@/store/dict'
 import { recordShareAction } from '@/utils'
-import { Dialog, Transition } from '@headlessui/react'
-import { useAtomValue } from 'jotai'
-import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import IconXMark from '~icons/heroicons/x-mark-solid'
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { X } from 'lucide-react'
 
 const PIC_RATIO = 3
 const PIC_LIST = [shareImage1, shareImage2, shareImage3, shareImage4, shareImage5, shareImage6, shareImage7, shareImage8, shareImage9]
@@ -53,10 +57,8 @@ export default function SharePicDialog({ showState, setShowState, randomChoose }
   const { state } = useContext(TypingContext)!
   const imageRef = useRef<HTMLDivElement>(null)
   const [imageURL, setImageURL] = useState<string | null>(null)
-  const currentDictInfo = useAtomValue(currentDictInfoAtom)
-  const currentChapter = useAtomValue(currentChapterAtom)
-
-  const dialogFocusRef = useRef<HTMLButtonElement>(null)
+  const currentDictInfo = useDictStore(getCurrentDictInfo)
+  const currentChapter = useDictStore(s => s.currentChapter)
 
   const shareImage = useMemo(() => PIC_LIST[Math.floor(randomChoose.picRandom * PIC_LIST.length)], [randomChoose.picRandom])
   const promote = useMemo(() => PROMOTE_LIST[Math.floor(randomChoose.promoteRandom * PROMOTE_LIST.length)], [randomChoose.promoteRandom])
@@ -92,73 +94,48 @@ export default function SharePicDialog({ showState, setShowState, randomChoose }
 
   return (
     <>
-      <Transition.Root show={showState}>
-        <Dialog as="div" className="relative z-50" onClose={handleClose} initialFocus={dialogFocusRef}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-end justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all  dark:bg-gray-700">
-                  <div className="flex flex-col items-center justify-center pb-10 pl-20 pr-14 pt-20">
-                    <button className="absolute right-7 top-5" type="button" onClick={handleClose} title="关闭对话框">
-                      <IconXMark className="h-6 w-6 text-gray-400" />
-                    </button>
-                    <div className="h-152 w-116">
-                      {imageURL ? (
-                        <img src={imageURL} className="h-auto w-full" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-solid border-white">
-                          <svg
-                            className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle className="opacity-50" cx="12" cy="12" r="10" stroke="rgb(129 140 248)" strokeWidth="4"></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      ref={dialogFocusRef}
-                      className="my-btn-primary mr-9 mt-10 h-10"
-                      type="button"
-                      onClick={handleDownload}
-                      title="保存"
-                    >
-                      保存
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
+      <Dialog open={showState} onOpenChange={setShowState}>
+        <DialogContent className="max-w-fit rounded-xl p-0 bg-transparent shadow-none border-none outline-none overflow-hidden" showCloseButton={false}>
+          <div className="relative flex flex-col items-center justify-center rounded-xl bg-white text-left shadow-xl transition-all dark:bg-gray-700 pb-10 pl-20 pr-14 pt-20">
+            <DialogClose asChild>
+              <button className="absolute right-7 top-5 outline-none focus:outline-none" type="button" onClick={handleClose} title="关闭对话框">
+                <X className="h-6 w-6 text-gray-400 hover:text-gray-500" />
+              </button>
+            </DialogClose>
+            
+            <div className="h-152 w-116">
+              {imageURL ? (
+                <img src={imageURL} className="h-auto w-full" alt="Share result" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-solid border-white">
+                  <svg
+                    className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-50" cx="12" cy="12" r="10" stroke="rgb(129 140 248)" strokeWidth="4"></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+              )}
             </div>
+            
+            <Button
+              className="mt-10 mr-9 h-10 w-32 bg-indigo-600 hover:bg-indigo-700 text-white"
+              type="button"
+              onClick={handleDownload}
+              title="保存"
+            >
+              保存
+            </Button>
           </div>
-        </Dialog>
-      </Transition.Root>
+        </DialogContent>
+      </Dialog>
 
       <div style={{ position: 'absolute', left: '-999px', zIndex: -1 }}>
         <div ref={imageRef} className=" box-content w-85 bg-white p-4">
@@ -174,7 +151,7 @@ export default function SharePicDialog({ showState, setShowState, randomChoose }
                 <DataBox data={state.timerData.accuracy + '%'} description="正确率" />
                 <DataBox data={state.timerData.wpm + ''} description="WPM" />
               </div>
-              <div className="ml-5 mt-4 self-start text-base text-gray-800">{currentDictInfo.name}</div>
+              <div className="ml-5 mt-4 self-start text-base text-gray-800">{currentDictInfo?.name}</div>
               <div className="ml-5 mt-2 self-start text-xs text-gray-600">{`第 ${currentChapter + 1} 章`}</div>
             </div>
             <div className="mb-3 ml-5 mt-auto">

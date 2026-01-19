@@ -9,29 +9,6 @@ import {
 import { Main } from "@/components/layouts/Main";
 import { PageHeader } from "@/components/PageHeader";
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Avatar,
-  Table,
-  IconButton,
-  Chip,
-  Modal,
-  ModalDialog,
-  ModalClose,
-  DialogTitle,
-  DialogContent,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Stack,
-  Alert,
-  CircularProgress,
-} from "@mui/joy";
-import {
   Settings,
   LogOut,
   Info,
@@ -41,6 +18,7 @@ import {
   Lock,
   Camera,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -56,6 +34,33 @@ import {
   type CreateTokenRequest,
 } from "@/api/profile";
 import { compressImageToBase64, validateImageFile } from "@/utils/image-compression";
+
+// shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const columnHelper = createColumnHelper<ApiToken>();
 
@@ -143,7 +148,6 @@ export default function ProfileSettings() {
     mutationFn: createApiToken,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['apiTokens'] });
-      setCreateTokenModalOpen(true); // 保持弹窗打开
       setTokenForm({ name: '', expiresAt: '' });
       setCreatedToken(data.accessToken); // 保存 accessToken
     },
@@ -226,7 +230,7 @@ export default function ProfileSettings() {
 
   // 删除 Token
   const handleDeleteToken = (id: string) => {
-    if (confirm("确定要删除这个 Token 吗？删除后无法恢复。")) {
+    if (confirm("确定要删除这个 Token 吗?删除后无法恢复。")) {
       deleteTokenMutation.mutate(id);
     }
   };
@@ -234,49 +238,52 @@ export default function ProfileSettings() {
   const columns = useMemo(() => [
     columnHelper.accessor('name', {
       header: '名称',
-      cell: info => <Typography level="body-sm">{info.getValue() || 'Session'}</Typography>,
+      cell: info => <span className="text-sm">{info.getValue() || 'Session'}</span>,
     }),
     columnHelper.accessor('createdAt', {
       header: '创建时间',
-      cell: info => dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss'),
+      cell: info => <span className="text-sm">{dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss')}</span>,
     }),
     columnHelper.accessor('expiresAt', {
       header: '过期时间',
-      cell: info => info.getValue() ? dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss') : '永不过期',
+      cell: info => (
+        <span className="text-sm">
+          {info.getValue() ? dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss') : '永不过期'}
+        </span>
+      ),
     }),
     columnHelper.accessor('lastUsedAt', {
       header: '最后使用',
-      cell: info => info.getValue() ? dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss') : '从未使用',
+      cell: info => (
+        <span className="text-sm">
+          {info.getValue() ? dayjs(info.getValue()).format('YYYY/MM/DD HH:mm:ss') : '从未使用'}
+        </span>
+      ),
     }),
     columnHelper.accessor('isExpired', {
       header: '状态',
       cell: info => (
-        <Chip
-          size="sm"
-          color={info.getValue() ? "danger" : "success"}
-          variant="soft"
-        >
+        <Badge variant={info.getValue() ? "destructive" : "default"}>
           {info.getValue() ? "已过期" : "有效"}
-        </Chip>
+        </Badge>
       ),
     }),
     columnHelper.display({
       id: 'actions',
       header: '操作',
       cell: ({ row }) => (
-        <IconButton
+        <Button
           size="sm"
-          color="danger"
-          variant="plain"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
           onClick={() => handleDeleteToken(row.original.id)}
           disabled={deleteTokenMutation.isPending}
         >
-          <LogOut size={16} />
-        </IconButton>
+          <LogOut className="h-4 w-4" />
+        </Button>
       ),
     }),
   ], [deleteTokenMutation.isPending]);
-
 
   const table = useReactTable({
     data: tokensData?.items ?? [],
@@ -284,47 +291,12 @@ export default function ProfileSettings() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // 表格样式参考 MistakePage
-  const tableSx = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '0.875rem',
-    lineHeight: '1.25rem',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: 'white',
-    '& thead': {
-      backgroundColor: '#f8fafc',
-    },
-    '& th': {
-      fontWeight: 600,
-      textAlign: 'left',
-      padding: '0.75rem 1rem',
-      color: '#64748b',
-      borderBottom: '1px solid #e2e8f0',
-      backgroundColor: '#f8fafc',
-    },
-    '& td': {
-      padding: '0.75rem 1rem',
-      color: '#334155',
-      textAlign: 'left',
-      borderBottom: '1px solid #e2e8f0',
-      backgroundColor: 'white',
-    },
-    '& tr:last-child td': {
-      borderBottom: 'none',
-    },
-    '& tbody tr:hover': {
-      backgroundColor: '#f8fafc',
-    },
-  };
-
   if (profileLoading) {
     return (
       <Main>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center items-center h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </Main>
     );
   }
@@ -335,326 +307,334 @@ export default function ProfileSettings() {
         title="设置"
         description="管理您的个人资料、密码和访问令牌。"
       />
+
       {/* 账户信息卡片 */}
-      <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-            <Avatar
-              src={userProfile?.image || "https://avatars.githubusercontent.com/u/45908451"}
-              sx={{ width: 64, height: 64, mr: 2 }}
-            />
-            <Box sx={{ flex: 1 }}>
-              <Typography level="h4" sx={{ fontWeight: 'bold' }}>
-                {userProfile?.username} <Typography level="body-sm" sx={{ color: 'text.secondary' }}>({userProfile?.email})</Typography>
-              </Typography>
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={userProfile?.image || "https://avatars.githubusercontent.com/u/45908451"} />
+              <AvatarFallback>{userProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold">
+                {userProfile?.username}{' '}
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({userProfile?.email})
+                </span>
+              </h2>
               {userProfile?.bio && (
-                <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 1, mb: 2 }}>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
                   {userProfile.bio}
-                </Typography>
+                </p>
               )}
-              <Stack direction="row" spacing={1}>
+              <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant="outlined"
-                  startDecorator={<Edit size={16} />}
+                  variant="outline"
                   onClick={() => setEditModalOpen(true)}
                 >
+                  <Edit className="h-4 w-4 mr-2" />
                   编辑
                 </Button>
                 <Button
                   size="sm"
-                  variant="outlined"
-                  startDecorator={<Lock size={16} />}
+                  variant="outline"
                   onClick={() => setPasswordModalOpen(true)}
                 >
+                  <Lock className="h-4 w-4 mr-2" />
                   修改密码
                 </Button>
-              </Stack>
-            </Box>
-          </Box>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Access Token 表格 */}
-      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box>
-              <Typography level="title-lg" sx={{ fontWeight: 'semibold' }}>
-                Access Tokens
-              </Typography>
-              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Access Tokens</CardTitle>
+              <CardDescription>
                 A list of all access tokens for your account.
-              </Typography>
-            </Box>
-            <Button
-              color="success"
-              startDecorator={<Plus size={16} />}
-              onClick={() => setCreateTokenModalOpen(true)}
-            >
+              </CardDescription>
+            </div>
+            <Button onClick={() => setCreateTokenModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
               创建
             </Button>
-          </Box>
-
+          </div>
+        </CardHeader>
+        <CardContent>
           {tokensLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : tokensData?.items.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              暂无 Token,请点击右上角"创建"按钮
+            </div>
           ) : (
-            tokensData?.items.length === 0 ? (
-              <Box sx={{ textAlign: 'center', color: '#64748b', py: 4 }}>
-                暂无 Token，请点击右上角"创建"按钮
-              </Box>
-            ) : (
-              <Table sx={tableSx}>
-                <thead>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id}>
+                    <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
-                        <th key={header.id} style={{ width: header.getSize(), textAlign: 'left' }}>
+                        <TableHead key={header.id}>
                           {header.isPlaceholder
                             ? null
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </th>
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                        </TableHead>
                       ))}
-                    </tr>
+                    </TableRow>
                   ))}
-                </thead>
-                <tbody>
+                </TableHeader>
+                <TableBody>
                   {table.getRowModel().rows.map((row) => (
-                    <tr key={row.id}>
+                    <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id}>
+                        <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
                           )}
-                        </td>
+                        </TableCell>
                       ))}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </Table>
-            )
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* 编辑信息 Modal */}
-      <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)}>
-        <ModalDialog size="md">
-          <ModalClose />
-          <DialogTitle>编辑个人信息</DialogTitle>
-          <DialogContent>
-            <form onSubmit={handleEditSubmit}>
-              <Stack spacing={3}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Avatar
-                      src={userProfile?.image || "https://avatars.githubusercontent.com/u/45908451"}
-                      sx={{ width: 80, height: 80 }}
-                    />
-                    <IconButton
-                      size="sm"
-                      sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        right: 0,
-                        bgcolor: 'background.surface',
-                        border: '2px solid',
-                        borderColor: 'background.surface',
-                        borderRadius: '50%',
-                        '&:hover': {
-                          bgcolor: 'background.level1',
-                        },
-                      }}
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadAvatarMutation.isPending}
-                    >
-                      {uploadAvatarMutation.isPending ? (
-                        <CircularProgress size="sm" />
-                      ) : (
-                        <Camera size={16} />
-                      )}
-                    </IconButton>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={handleAvatarUpload}
-                    />
-                  </Box>
-                </Box>
-                <FormControl>
-                  <FormLabel>用户名</FormLabel>
-                  <Input
-                    value={editForm.username}
-                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                    required
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>邮箱</FormLabel>
-                  <Input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    required
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>个人简介</FormLabel>
-                  <Textarea
-                    minRows={3}
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                    placeholder="介绍一下自己..."
-                  />
-                </FormControl>
-                <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 2 }}>
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>编辑个人信息</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={userProfile?.image || "https://avatars.githubusercontent.com/u/45908451"} />
+                    <AvatarFallback>{userProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
                   <Button
-                    variant="outlined"
-                    onClick={() => setEditModalOpen(false)}
-                    disabled={updateProfileMutation.isPending}
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full border-2 border-background"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadAvatarMutation.isPending}
                   >
-                    取消
+                    {uploadAvatarMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
                   </Button>
-                  <Button
-                    type="submit"
-                    color="primary"
-                    disabled={updateProfileMutation.isPending}
-                  >
-                    {updateProfileMutation.isPending ? <CircularProgress size="sm" /> : "保存"}
-                  </Button>
-                </Stack>
-              </Stack>
-            </form>
-          </DialogContent>
-        </ModalDialog>
-      </Modal>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">用户名</Label>
+                <Input
+                  id="username"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">邮箱</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio">个人简介</Label>
+                <Textarea
+                  id="bio"
+                  rows={3}
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  placeholder="介绍一下自己..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+                disabled={updateProfileMutation.isPending}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateProfileMutation.isPending}
+              >
+                {updateProfileMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                保存
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* 修改密码 Modal */}
-      <Modal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)}>
-        <ModalDialog size="md">
-          <ModalClose />
-          <DialogTitle>修改密码</DialogTitle>
-          <DialogContent>
-            <form onSubmit={handlePasswordSubmit}>
-              <Stack spacing={3}>
-                <FormControl>
-                  <FormLabel>当前密码</FormLabel>
-                  <Input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    required
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>新密码</FormLabel>
-                  <Input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    required
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>确认新密码</FormLabel>
-                  <Input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    required
-                  />
-                </FormControl>
-                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Button
-                    variant="outlined"
-                    onClick={() => setPasswordModalOpen(false)}
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    取消
-                  </Button>
-                  <Button
-                    type="submit"
-                    color="primary"
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    {changePasswordMutation.isPending ? <CircularProgress size="sm" /> : "修改密码"}
-                  </Button>
-                </Stack>
-              </Stack>
-            </form>
-          </DialogContent>
-        </ModalDialog>
-      </Modal>
+      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>修改密码</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePasswordSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">当前密码</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">新密码</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">确认新密码</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPasswordModalOpen(false)}
+                disabled={changePasswordMutation.isPending}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+              >
+                {changePasswordMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                修改密码
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* 创建 Token Modal */}
-      <Modal open={createTokenModalOpen} onClose={() => { setCreateTokenModalOpen(false); setCreatedToken(null); }}>
-        <ModalDialog size="md">
-          <ModalClose />
-          <DialogTitle>创建 API Token</DialogTitle>
-          <DialogContent>
+      <Dialog open={createTokenModalOpen} onOpenChange={(open) => {
+        setCreateTokenModalOpen(open);
+        if (!open) setCreatedToken(null);
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>创建 API Token</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             {createdToken ? (
-              <Alert color="success" sx={{ mb: 2 }}>
-                <Info size={16} />
-                <Typography level="body-sm">
-                  只会展示一次，请复制保存：
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                  <Input
-                    value={createdToken}
-                    readOnly
-                    sx={{ flex: 1, fontFamily: 'monospace' }}
-                  />
-                  <Button
-                    size="sm"
-                    sx={{ ml: 1 }}
-                    onClick={() => { navigator.clipboard.writeText(createdToken); }}
-                  >
-                    复制
-                  </Button>
-                </Box>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="mb-2">只会展示一次,请复制保存:</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={createdToken}
+                      readOnly
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => navigator.clipboard.writeText(createdToken)}
+                    >
+                      复制
+                    </Button>
+                  </div>
+                </AlertDescription>
               </Alert>
             ) : (
-              <Alert color="primary" sx={{ mb: 2 }}>
-                <Info size={16} />
-                <Typography level="body-sm">
-                  API Token 将用于第三方应用程序访问您的账户。请妥善保管，不要泄露给他人。
-                </Typography>
-              </Alert>
-            )}
-            {!createdToken && (
-              <form onSubmit={handleCreateToken}>
-                <Stack spacing={3}>
-                  <FormControl>
-                    <FormLabel>Token 名称</FormLabel>
-                    <Input
-                      placeholder="例如：GitHub Integration"
-                      value={tokenForm.name}
-                      onChange={(e) => setTokenForm({ ...tokenForm, name: e.target.value })}
-                      required
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>过期时间</FormLabel>
-                    <Input
-                      type="datetime-local"
-                      value={tokenForm.expiresAt}
-                      onChange={(e) => setTokenForm({ ...tokenForm, expiresAt: e.target.value })}
-                    />
-                    <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                      留空表示永不过期
-                    </Typography>
-                  </FormControl>
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <>
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    API Token 将用于第三方应用程序访问您的账户。请妥善保管,不要泄露给他人。
+                  </AlertDescription>
+                </Alert>
+                <form onSubmit={handleCreateToken}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="token-name">Token 名称</Label>
+                      <Input
+                        id="token-name"
+                        placeholder="例如:GitHub Integration"
+                        value={tokenForm.name}
+                        onChange={(e) => setTokenForm({ ...tokenForm, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expires-at">过期时间</Label>
+                      <Input
+                        id="expires-at"
+                        type="datetime-local"
+                        value={tokenForm.expiresAt}
+                        onChange={(e) => setTokenForm({ ...tokenForm, expiresAt: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        留空表示永不过期
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-6">
                     <Button
-                      variant="outlined"
+                      type="button"
+                      variant="outline"
                       onClick={() => setCreateTokenModalOpen(false)}
                       disabled={createTokenMutation.isPending}
                     >
@@ -662,18 +642,20 @@ export default function ProfileSettings() {
                     </Button>
                     <Button
                       type="submit"
-                      color="success"
                       disabled={createTokenMutation.isPending}
                     >
-                      {createTokenMutation.isPending ? <CircularProgress size="sm" /> : "创建 Token"}
+                      {createTokenMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      创建 Token
                     </Button>
-                  </Stack>
-                </Stack>
-              </form>
+                  </DialogFooter>
+                </form>
+              </>
             )}
-          </DialogContent>
-        </ModalDialog>
-      </Modal>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Main>
   );
 }

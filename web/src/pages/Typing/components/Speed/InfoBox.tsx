@@ -1,25 +1,15 @@
 import React from 'react'
-import { Box, Typography } from '@mui/joy'
 
 const InfoBox: React.FC<InfoBoxProps> = ({ info, description }) => {
   return (
-    <Box flex={1} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-      <Typography
-        level="title-lg"
-        sx={{
-          width: '80%',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          pb: 1,
-          textAlign: 'center',
-          fontWeight: 'bold',
-          color: 'text.secondary',
-        }}
+    <div className="flex flex-1 flex-col items-center justify-center">
+      <h3
+        className="w-[80%] border-b border-gray-200 pb-1 text-center text-lg font-bold text-gray-600 dark:border-gray-700 dark:text-gray-400"
       >
         {info}
-      </Typography>
-      <Typography level="body-xs" sx={{ pt: 1, color: 'text.tertiary' }}>{description}</Typography>
-    </Box>
+      </h3>
+      <p className="pt-1 text-xs text-gray-400 dark:text-gray-500">{description}</p>
+    </div>
   )
 }
 

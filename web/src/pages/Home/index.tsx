@@ -2,7 +2,8 @@ import type React from "react";
 import { Link } from "@tanstack/react-router";
 import Header from "@/components/Header";
 import { Book, AlertCircle, BarChart2, Calendar } from "lucide-react";
-import { Box, Stack, Typography, Button, Card, CardContent, Divider, Grid } from '@mui/joy';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Home: React.FC = () => {
   const getGreeting = () => {
@@ -12,110 +13,81 @@ const Home: React.FC = () => {
     return "晚上好";
   };
 
+  const menuItems = [
+    {
+      title: "词库",
+      description: "管理你的词库，添加新的单词和短语",
+      icon: Book,
+      link: "/dictionary",
+    },
+    {
+      title: "错题本",
+      description: "查看和复习你经常出错的单词",
+      icon: AlertCircle,
+      link: "/mistake",
+    },
+    {
+      title: "统计",
+      description: "查看你的练习数据和进步情况",
+      icon: BarChart2,
+      link: "/statistic",
+    },
+    {
+      title: "练习计划",
+      description: "制定和跟踪你的练习计划",
+      icon: Calendar,
+      link: "/plan",
+    },
+  ];
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.body' }}>
+    <div className="min-h-screen bg-background">
       <Header />
-      <Stack alignItems="center" sx={{ mt: 12 }}>
-        <Typography level="h2" sx={{ fontSize: 40, fontWeight: 700, mb: 3 }}>
+      <div className="flex flex-col items-center mt-12">
+        <h2 className="text-[40px] font-bold mb-3">
           {getGreeting()}
-        </Typography>
-        <Typography level="body-lg" sx={{ color: 'text.secondary', mb: 3 }}>
+        </h2>
+        <p className="text-lg text-muted-foreground mb-3">
           准备好开始今天的打字练习了吗？
-        </Typography>
+        </p>
         <Button
-          component={Link}
-          to="/typing"
+          asChild
           size="lg"
-          variant="solid"
-          color="primary"
-          sx={{ fontSize: 20, px: 6, py: 2, borderRadius: 8, mb: 6 }}
+          className="text-xl px-6 py-2 h-auto rounded-full mb-6"
         >
-          开始练习
+          <Link to="/typing">开始练习</Link>
         </Button>
-      </Stack>
-      <Grid container spacing={3} sx={{ maxWidth: 900, mx: 'auto', mt: 2 }}>
-        <Grid xs={12} sm={6}>
-          <Card
-            variant="soft"
-            sx={{ height: 132, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', ':hover': { boxShadow: 'lg', '& .MuiSvgIcon-root': { color: 'primary.500' }, '& .MuiTypography-root': { color: 'primary.700' } }, transition: 'box-shadow 0.3s' }}
-          >
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', p: 3 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
-                <Typography level="h4" sx={{ mb: 1 }}>
-                  词库
-                </Typography>
-                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                  管理你的词库，添加新的单词和短语
-                </Typography>
-              </Box>
-              <Button component={Link} to="/dictionary" variant="plain" color="neutral" sx={{ p: 0, minWidth: 0, alignSelf: 'flex-end' }}>
-                <Book size={48} style={{ transition: 'color 0.3s' }} />
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid xs={12} sm={6}>
-          <Card
-            variant="soft"
-            sx={{ height: 132, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', ':hover': { boxShadow: 'lg', '& .MuiSvgIcon-root': { color: 'primary.500' }, '& .MuiTypography-root': { color: 'primary.700' } }, transition: 'box-shadow 0.3s' }}
-          >
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', p: 3 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
-                <Typography level="h4" sx={{ mb: 1 }}>
-                  错题本
-                </Typography>
-                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                  查看和复习你经常出错的单词
-                </Typography>
-              </Box>
-              <Button component={Link} to="/mistake" variant="plain" color="neutral" sx={{ p: 0, minWidth: 0, alignSelf: 'flex-end' }}>
-                <AlertCircle size={48} style={{ transition: 'color 0.3s' }} />
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid xs={12} sm={6}>
-          <Card
-            variant="soft"
-            sx={{ height: 132, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', ':hover': { boxShadow: 'lg', '& .MuiSvgIcon-root': { color: 'primary.500' }, '& .MuiTypography-root': { color: 'primary.700' } }, transition: 'box-shadow 0.3s' }}
-          >
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', p: 3 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
-                <Typography level="h4" sx={{ mb: 1 }}>
-                  统计
-                </Typography>
-                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                  查看你的练习数据和进步情况
-                </Typography>
-              </Box>
-              <Button component={Link} to="/statistic" variant="plain" color="neutral" sx={{ p: 0, minWidth: 0, alignSelf: 'flex-end' }}>
-                <BarChart2 size={48} style={{ transition: 'color 0.3s' }} />
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid xs={12} sm={6}>
-          <Card
-            variant="soft"
-            sx={{ height: 132, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', ':hover': { boxShadow: 'lg', '& .MuiSvgIcon-root': { color: 'primary.500' }, '& .MuiTypography-root': { color: 'primary.700' } }, transition: 'box-shadow 0.3s' }}
-          >
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', p: 3 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
-                <Typography level="h4" sx={{ mb: 1 }}>
-                  练习计划
-                </Typography>
-                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                  制定和跟踪你的练习计划
-                </Typography>
-              </Box>
-              <Button component={Link} to="/plan" variant="plain" color="neutral" sx={{ p: 0, minWidth: 0, alignSelf: 'flex-end' }}>
-                <Calendar size={48} style={{ transition: 'color 0.3s' }} />
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-[900px] mx-auto mt-2 px-4 sm:px-0">
+        {menuItems.map((item) => (
+          <div key={item.title}>
+            <Card
+              className="h-[132px] flex flex-col justify-end transition-shadow duration-300 hover:shadow-lg group bg-muted/50 border-none"
+            >
+              <CardContent className="flex-grow flex flex-row items-end justify-between p-6">
+                <div className="flex flex-col items-start justify-end">
+                  <h4 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="p-0 min-w-0 h-auto self-end hover:bg-transparent"
+                >
+                  <Link to={item.link}>
+                    <item.icon size={48} className="transition-colors group-hover:text-primary" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 

@@ -1,62 +1,74 @@
-import Tooltip from '@/components/Tooltip'
-import { currentChapterAtom, currentDictInfoAtom, isReviewModeAtom } from '@/store'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useDictStore, getCurrentDictInfo } from '@/store/dict'
+import { useTypingConfigStore } from '@/store/typing'
 import range from '@/utils/range'
-import { Listbox, Transition } from '@headlessui/react'
-import { useAtom, useAtomValue } from 'jotai'
-import { Fragment } from 'react'
 import { Link } from '@tanstack/react-router'
-import IconCheck from '~icons/tabler/check'
+import { CheckIcon } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export const DictChapterButton = () => {
-  const currentDictInfo = useAtomValue(currentDictInfoAtom)
-  const [currentChapter, setCurrentChapter] = useAtom(currentChapterAtom)
-  const chapterCount = currentDictInfo.chapterCount
-  const isReviewMode = useAtomValue(isReviewModeAtom)
+  const currentDictInfo = useDictStore(getCurrentDictInfo)
+  const currentChapter = useDictStore(s => s.currentChapter)
+  const setCurrentChapter = useDictStore(s => s.setCurrentChapter)
+  const chapterCount = currentDictInfo?.chapterCount || 0
+  const isReviewMode = useTypingConfigStore(s => s.reviewModeInfo.isReviewMode)
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLButtonElement> = (event) => {
-    if (event.key === ' ') {
-      event.preventDefault()
-    }
-  }
   return (
     <>
-      <Tooltip content="词典切换">
-        <Link
-          className="block rounded-lg px-3 py-1 text-lg transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white focus:outline-none dark:text-white dark:text-opacity-60 dark:hover:text-opacity-100"
-          to="/gallery"
-        >
-          {currentDictInfo.name} {isReviewMode && '错题复习'}
-        </Link>
-      </Tooltip>
-      {!isReviewMode && (
-        <Tooltip content="章节切换">
-          <Listbox value={currentChapter} onChange={setCurrentChapter}>
-            <Listbox.Button
-              onKeyDown={handleKeyDown}
-              className="rounded-lg px-3 py-1 text-lg transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white focus:outline-none dark:text-white dark:text-opacity-60 dark:hover:text-opacity-100"
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              className="block rounded-lg px-3 py-1 text-lg transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white focus:outline-none dark:text-white dark:text-opacity-60 dark:hover:text-opacity-100"
+              to="/dictionary"
             >
-              第 {currentChapter + 1} 章
-            </Listbox.Button>
-            <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-              <Listbox.Options className="listbox-options z-10 w-32">
-                {range(0, chapterCount, 1).map((index) => (
-                  <Listbox.Option key={index} value={index}>
-                    {({ selected }) => (
-                      <div className="group flex cursor-pointer items-center justify-between">
-                        {selected ? (
-                          <span className="listbox-options-icon">
-                            <IconCheck className="focus:outline-none" />
-                          </span>
-                        ) : null}
-                        <span>第 {index + 1} 章</span>
-                      </div>
-                    )}
-                  </Listbox.Option>
-                ))}
-              </Listbox.Options>
-            </Transition>
-          </Listbox>
+              {currentDictInfo?.name} {isReviewMode && '错题复习'}
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>词典切换</p>
+          </TooltipContent>
         </Tooltip>
+      </TooltipProvider>
+      {!isReviewMode && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Select 
+                value={String(currentChapter)} 
+                onValueChange={(val) => setCurrentChapter(Number(val))}
+              >
+                <SelectTrigger className="w-fit h-auto border-none shadow-none bg-transparent p-0 text-lg hover:bg-indigo-400 hover:text-white focus:ring-0 dark:text-white dark:text-opacity-60 dark:hover:text-opacity-100 px-3 py-1 rounded-lg transition-colors duration-300">
+                  <SelectValue placeholder={`第 ${currentChapter + 1} 章`} />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {range(0, chapterCount, 1).map((index) => (
+                    <SelectItem key={index} value={String(index)}>
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span>第 {index + 1} 章</span>
+                        {currentChapter === index && <CheckIcon className="h-4 w-4" />}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>章节切换</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </>
   )
