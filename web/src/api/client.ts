@@ -1,7 +1,7 @@
 import {
   QueryCache,
   QueryClient,
-  QueryFunction,
+  type QueryFunction,
 } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { refreshToken as callRefreshTokenApi } from "@/api/auth";

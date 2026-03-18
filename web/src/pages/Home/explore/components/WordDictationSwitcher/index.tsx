@@ -43,7 +43,7 @@ export default function WordDictationSwitcher() {
   }
 
   const onChangeWordDictationType = (value: WordDictationType) => {
-    setWordDictationConfig((old) => {
+    setWordDictationConfig((old: any) => {
       return { ...old, type: value }
     })
   }

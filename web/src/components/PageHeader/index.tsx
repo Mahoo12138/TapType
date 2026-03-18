@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box, Typography } from '@mui/joy';
 
 interface PageHeaderProps {
   title: string;
@@ -8,15 +7,15 @@ interface PageHeaderProps {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, description }) => {
   return (
-    <Box sx={{ my: 3 }} >
-      <Typography level="h1" component="h1" fontWeight="bold">
+    <div className="my-6">
+      <h1 className="text-4xl font-bold tracking-tight">
         {title}
-      </Typography>
+      </h1>
       {description && (
-        <Typography level="body-md" sx={{ color: 'text.tertiary', mt: 2 }}>
+        <p className="mt-2 text-muted-foreground">
           {description}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
-}; 
+};

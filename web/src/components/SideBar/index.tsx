@@ -1,7 +1,7 @@
 import { User, Home, FileText, Settings, Book, BarChart2, AlertCircle } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { menuItems } from "@/constants";
-import styles from "./style.module.scss";
+import { cn } from "@/lib/utils";
 
 const iconMap = {
   Home,
@@ -17,26 +17,30 @@ const SideBar: React.FC = () => {
   const location = useLocation();
 
   return (
-    <aside className={styles.sidebar}>
-        <div className={styles.userInfo}>
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+        <div className="flex h-20 items-center gap-3 border-b border-sidebar-border px-6">
         <img
           src="https://avatars.githubusercontent.com/u/45908451"
           alt="avatar"
-          className={styles.avatar}
+          className="h-8 w-8 rounded-full"
         />
-        <span className={styles.username}>mahoo12138</span>
+        <span className="font-medium">mahoo12138</span>
       </div>
-      <nav className={styles.nav}>
-        <ul className={styles.menu}>
+      <nav className="p-4">
+        <ul className="space-y-1">
           {menuItems.map(({ path, icon, label }) => {
             const IconComponent = iconMap[icon] || iconMap.default;
+            const isActive = location.pathname === path;
             return (
-              <li key={path} className={styles.menuItem}>
+              <li key={path}>
                 <Link 
-                  className={`${styles.link} ${location.pathname === path ? styles.active : ''}`} 
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""
+                  )} 
                   to={path}
                 >
-                  <IconComponent size={18} className={styles.icon} /> {label}
+                  <IconComponent size={18} /> {label}
                 </Link>
               </li>
             );

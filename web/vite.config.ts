@@ -1,59 +1,30 @@
-import path from 'node:path'
-import react from '@vitejs/plugin-react'
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
-import { getLastCommit } from 'git-last-commit'
-import jotaiDebugLabel from 'jotai/babel/plugin-debug-label'
-import jotaiReactRefresh from 'jotai/babel/plugin-react-refresh'
-import { visualizer } from 'rollup-plugin-visualizer'
-import { defineConfig } from 'vite'
-import type { PluginOption } from 'vite'
+import { defineConfig } from "vite"
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
 
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 const devProxyServer = "http://127.0.0.1:3000";
 
-// https://vitejs.dev/config/
-// @ts-ignore
-export default defineConfig(async ({ mode }) => {
-  const latestCommitHash = await new Promise<string>((resolve) => {
-    return getLastCommit((err, commit) => (err ? 'unknown' : resolve(commit.shortHash)))
-  })
-  return {
-    plugins: [
-      TanStackRouterVite(),
-      react({ babel: { plugins: [jotaiDebugLabel, jotaiReactRefresh] } }),
-      visualizer() as PluginOption
-    ],
-    build: {
-      minify: true,
-      outDir: 'build',
-      sourcemap: false,
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss(), tanstackRouter()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@shared": path.resolve(__dirname, "../shared"),
     },
-    server: {
-      host: "0.0.0.0",
-      port: 8500,
-      proxy: {
-        "^/api": {
-          target: devProxyServer,
-          xfwd: true,
-        },
+  },
+  server: {
+    host: "0.0.0.0",
+    port: 8500,
+    proxy: {
+      "^/api": {
+        target: devProxyServer,
+        xfwd: true,
       },
     },
-    esbuild: {
-      drop: mode === 'development' ? undefined : ['console', 'debugger'],
-    },
-    define: {
-      REACT_APP_DEPLOY_ENV: JSON.stringify(process.env.REACT_APP_DEPLOY_ENV),
-      LATEST_COMMIT_HASH: JSON.stringify(latestCommitHash + (process.env.NODE_ENV === 'production' ? '' : ' (dev)')),
-    },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, 'src'),
-      },
-    },
-    css: {
-      modules: {
-        localsConvention: 'camelCaseOnly',
-      },
-    },
-  }
+  },
 })

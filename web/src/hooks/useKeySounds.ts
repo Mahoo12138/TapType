@@ -1,15 +1,14 @@
 import { KEY_SOUND_URL_PREFIX, SOUND_URL_PREFIX, keySoundResources } from '@/resources/soundResource'
-import { hintSoundsConfigAtom, keySoundsConfigAtom } from '@/store'
+import { useTypingConfigStore } from '@/store/typing'
 import noop from '@/utils/noop'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
 import useSound from 'use-sound'
 
 export type PlayFunction = ReturnType<typeof useSound>[0]
 
 export default function useKeySound(): [PlayFunction, PlayFunction, PlayFunction] {
-  const { isOpen: isKeyOpen, isOpenClickSound, volume: keyVolume, resource: keyResource } = useAtomValue(keySoundsConfigAtom)
-  const setKeySoundsConfig = useSetAtom(keySoundsConfigAtom)
+  const { isOpen: isKeyOpen, isOpenClickSound, volume: keyVolume, resource: keyResource } = useTypingConfigStore(s => s.keySoundsConfig)
+  const setKeySoundsConfig = useTypingConfigStore(s => s.setKeySoundsConfig)
   const {
     isOpen: isHintOpen,
     isOpenWrongSound,
@@ -17,7 +16,7 @@ export default function useKeySound(): [PlayFunction, PlayFunction, PlayFunction
     volume: hintVolume,
     wrongResource,
     correctResource,
-  } = useAtomValue(hintSoundsConfigAtom)
+  } = useTypingConfigStore(s => s.hintSoundsConfig)
   const [keySoundUrl, setKeySoundUrl] = useState(`${KEY_SOUND_URL_PREFIX}${keyResource.filename}`)
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export default function useKeySound(): [PlayFunction, PlayFunction, PlayFunction
       const defaultKeySoundResource = keySoundResources.find((item) => item.key === 'Default') || keySoundResources[0]
 
       setKeySoundUrl(`${KEY_SOUND_URL_PREFIX}${defaultKeySoundResource.filename}`)
-      setKeySoundsConfig((prev) => ({ ...prev, resource: defaultKeySoundResource }))
+      setKeySoundsConfig({ resource: defaultKeySoundResource })
     }
   }, [keyResource, setKeySoundsConfig])
 

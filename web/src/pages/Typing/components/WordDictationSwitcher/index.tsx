@@ -1,13 +1,11 @@
-import { wordDictationConfigAtom } from '@/store'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useTypingConfigStore } from '@/store/typing'
 import type { WordDictationType } from '@/typings'
-import { Listbox, Popover, Switch, Transition } from '@headlessui/react'
-import { useAtom } from 'jotai'
-import { Fragment, useLayoutEffect, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { useLayoutEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-import IconEyeSlash from '~icons/heroicons/eye-slash-solid'
-import IconEye from '~icons/heroicons/eye-solid'
-import IconCheck from '~icons/tabler/check'
-import IconChevronDown from '~icons/tabler/chevron-down'
 
 const wordDictationTypeList: { name: string; type: WordDictationType }[] = [
   {
@@ -29,22 +27,22 @@ const wordDictationTypeList: { name: string; type: WordDictationType }[] = [
 ]
 
 export default function WordDictationSwitcher() {
-  const [wordDictationConfig, setWordDictationConfig] = useAtom(wordDictationConfigAtom)
+  const wordDictationConfig = useTypingConfigStore((s) => s.wordDictationConfig)
+  const setWordDictationConfig = useTypingConfigStore((s) => s.setWordDictationConfig)
   const [currentType, setCurrentType] = useState(wordDictationTypeList[0])
 
   const onToggleWordDictation = () => {
-    setWordDictationConfig((old) => {
-      if (!old.isOpen) {
-        return { ...old, isOpen: !old.isOpen, openBy: 'user' }
-      } else {
-        return { ...old, isOpen: !old.isOpen }
-      }
+    setWordDictationConfig({
+      ...wordDictationConfig,
+      isOpen: !wordDictationConfig.isOpen,
+      openBy: !wordDictationConfig.isOpen ? 'user' : wordDictationConfig.openBy,
     })
   }
 
   const onChangeWordDictationType = (value: WordDictationType) => {
-    setWordDictationConfig((old) => {
-      return { ...old, type: value }
+    setWordDictationConfig({
+      ...wordDictationConfig,
+      type: value,
     })
   }
 
@@ -62,92 +60,59 @@ export default function WordDictationSwitcher() {
   )
 
   return (
-    <Popover className="relative">
-      {({ open }) => (
-        <>
-          <Popover.Button
-            className={`flex items-center justify-center rounded p-[2px] text-lg ${
-              wordDictationConfig.isOpen ? 'text-indigo-500' : 'text-gray-500'
-            } outline-none transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white  ${
-              open ? 'bg-indigo-500 text-white' : ''
-            }`}
-            type="button"
-            aria-label="开关默写模式"
-          >
-            {wordDictationConfig.isOpen ? <IconEye className="icon" /> : <IconEyeSlash className="icon" />}
-          </Popover.Button>
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-200"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-150"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
-          >
-            <Popover.Panel className="absolute left-1/2 z-10 mt-2 flex max-w-max -translate-x-1/2 px-4 ">
-              <div className="shadow-upper box-border flex w-60 select-none flex-col items-center justify-center gap-4 rounded-xl bg-white p-4 drop-shadow dark:bg-gray-800">
-                <div className="flex w-full  flex-col  items-start gap-2 py-0">
-                  <span className="text-sm font-normal leading-5 text-gray-900 dark:text-white dark:text-opacity-60">开关默写模式</span>
-                  <div className="flex w-full flex-row items-center justify-between">
-                    <Switch checked={wordDictationConfig.isOpen} onChange={onToggleWordDictation} className="switch-root">
-                      <span aria-hidden="true" className="switch-thumb" />
-                    </Switch>
-                    <span className="text-right text-xs font-normal leading-tight text-gray-600">{`默写已${
-                      wordDictationConfig.isOpen ? '开启' : '关闭'
-                    }`}</span>
-                  </div>
-                </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={`flex h-7 w-7 items-center justify-center rounded p-[2px] text-lg outline-none transition-colors duration-300 ease-in-out hover:bg-indigo-400 hover:text-white ${
+            wordDictationConfig.isOpen ? 'text-indigo-500' : 'text-gray-500'
+          }`}
+          type="button"
+          aria-label="开关默写模式"
+        >
+          {wordDictationConfig.isOpen ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-4">
+        <div className="flex w-60 select-none flex-col items-center justify-center gap-4 rounded-xl bg-white p-4 drop-shadow transition duration-1000 ease-in-out dark:bg-gray-800">
+          <div className="flex w-full flex-col items-start gap-2 py-0">
+            <span className="text-sm font-normal leading-5 text-gray-900 dark:text-white dark:text-opacity-60">
+              开关默写模式
+            </span>
+            <div className="flex w-full flex-row items-center justify-between">
+              <Switch checked={wordDictationConfig.isOpen} onCheckedChange={onToggleWordDictation} />
+              <span className="text-right text-xs font-normal leading-tight text-gray-600 dark:text-gray-400">{`默写已${
+                wordDictationConfig.isOpen ? '开启' : '关闭'
+              }`}</span>
+            </div>
+          </div>
 
-                <Transition
-                  show={wordDictationConfig.isOpen}
-                  className="flex w-full flex-col items-center justify-center gap-4"
-                  enter="transition-all duration-300 ease-in"
-                  enterFrom="max-h-0 opacity-0"
-                  enterTo="max-h-[300px] opacity-100"
-                  leave="transition-all duration-300 ease-out"
-                  leaveFrom="max-h-[300px] opacity-100"
-                  leaveTo="max-h-0 opacity-0"
-                >
-                  <div className="flex w-full  flex-col  items-start gap-2 py-0">
-                    <span className="text-sm font-normal leading-5 text-gray-900 dark:text-white dark:text-opacity-60">默写模式</span>
-                    <div className="flex w-full flex-row items-center justify-between">
-                      <Listbox value={currentType.type} onChange={onChangeWordDictationType}>
-                        <div className="relative">
-                          <Listbox.Button className="listbox-button">
-                            <span>{currentType.name}</span>
-                            <span>
-                              <IconChevronDown className="focus:outline-none" />
-                            </span>
-                          </Listbox.Button>
-                          <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-                            <Listbox.Options className="listbox-options">
-                              {wordDictationTypeList.map((item) => (
-                                <Listbox.Option key={item.name} value={item.type}>
-                                  {({ selected }) => (
-                                    <>
-                                      <span>{item.name}</span>
-                                      {selected ? (
-                                        <span className="listbox-options-icon">
-                                          <IconCheck className="focus:outline-none" />
-                                        </span>
-                                      ) : null}
-                                    </>
-                                  )}
-                                </Listbox.Option>
-                              ))}
-                            </Listbox.Options>
-                          </Transition>
-                        </div>
-                      </Listbox>
-                    </div>
-                  </div>
-                </Transition>
+          <div
+            className={`flex w-full flex-col items-center justify-center gap-4 transition-all duration-300 ease-in-out ${
+              wordDictationConfig.isOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+            }`}
+          >
+            <div className="flex w-full flex-col items-start gap-2 py-0">
+              <span className="text-sm font-normal leading-5 text-gray-900 dark:text-white dark:text-opacity-60">
+                默写模式
+              </span>
+              <div className="flex w-full flex-row items-center justify-between">
+                <Select value={currentType.type} onValueChange={onChangeWordDictationType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{currentType.name}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wordDictationTypeList.map((item) => (
+                      <SelectItem key={item.name} value={item.type}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </Popover.Panel>
-          </Transition>
-        </>
-      )}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
     </Popover>
   )
 }

@@ -1,6 +1,5 @@
 import clamp from '@/utils/clamp'
 import { useMemo } from 'react'
-import { Box, Typography } from '@mui/joy'
 
 export type RemarkRingProps = {
   remark: string
@@ -44,35 +43,18 @@ export default function RemarkRing({ remark, caption, percentage = null, size = 
   }, [percentage, size])
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        borderRadius: '50%',
-        border: '8px solid',
-        borderColor: 'primary.200',
-        bgcolor: 'transparent',
+    <div
+      className="relative flex flex-col items-center justify-center flex-shrink-0 rounded-full border-8 border-primary/30 bg-transparent"
+      style={{
         width: `${size}rem`,
         height: `${size}rem`,
       }}
     >
       {/* Progress ring overlay - only shown when percentage is provided */}
       {percentage !== null && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-8px',
-            left: '-8px',
-            right: '-8px',
-            bottom: '-8px',
-            borderRadius: '50%',
-            border: '8px solid',
-            borderColor: 'primary.400',
-            bgcolor: 'transparent',
+        <div
+          className="absolute -top-2 -left-2 -right-2 -bottom-2 rounded-full border-8 border-primary bg-transparent"
+          style={{
             clipPath,
           }}
           aria-hidden
@@ -80,26 +62,14 @@ export default function RemarkRing({ remark, caption, percentage = null, size = 
       )}
       
       {/* Main remark text (e.g., "95%", "2:30", "120") */}
-      <Typography
-        level="h4"
-        sx={{
-          fontVariantNumeric: 'tabular-nums',
-          color: 'text.primary',
-        }}
-      >
+      <h4 className="text-2xl font-semibold tabular-nums text-foreground">
         {remark}
-      </Typography>
+      </h4>
       
       {/* Caption text (e.g., "正确率", "章节耗时", "WPM") */}
-      <Typography
-        level="body-sm"
-        sx={{
-          fontWeight: 'medium',
-          color: 'text.secondary',
-        }}
-      >
+      <p className="text-sm font-medium text-muted-foreground">
         {caption}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 export enum ErrorCode {
   // Common Validation
-  V000 = 'common.validation.error',
+  V000 = 'server.validation.error',
 
   // Validation
   V001 = 'user.validation.is_empty',

@@ -1,90 +1,77 @@
-import styles from './index.module.css'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Slider } from '@/components/ui/slider'
 import { defaultFontSizeConfig } from '@/constants'
-import { fontSizeConfigAtom } from '@/store'
-import * as ScrollArea from '@radix-ui/react-scroll-area'
-import * as Slider from '@radix-ui/react-slider'
-import { useAtom } from 'jotai'
+import { useTypingConfigStore } from '@/store/typing'
 import { useCallback } from 'react'
 
 export default function ViewSetting() {
-  const [fontSizeConfig, setFontsizeConfig] = useAtom(fontSizeConfigAtom)
+  const fontSizeConfig = useTypingConfigStore((s) => s.fontSizeConfig)
+  const setFontSizeConfig = useTypingConfigStore((s) => s.setFontSizeConfig)
 
   const onChangeForeignFontSize = useCallback(
-    (value: [number]) => {
-      setFontsizeConfig((prev) => ({
-        ...prev,
+    (value: number[]) => {
+      setFontSizeConfig({
+        ...fontSizeConfig,
         foreignFont: value[0],
-      }))
+      })
     },
-    [setFontsizeConfig],
+    [fontSizeConfig, setFontSizeConfig],
   )
 
   const onChangeTranslateFontSize = useCallback(
-    (value: [number]) => {
-      setFontsizeConfig((prev) => ({
-        ...prev,
+    (value: number[]) => {
+      setFontSizeConfig({
+        ...fontSizeConfig,
         translateFont: value[0],
-      }))
+      })
     },
-    [setFontsizeConfig],
+    [fontSizeConfig, setFontSizeConfig],
   )
 
   const onResetFontSize = useCallback(() => {
-    setFontsizeConfig({ ...defaultFontSizeConfig })
-  }, [setFontsizeConfig])
+    setFontSizeConfig({ ...defaultFontSizeConfig })
+  }, [setFontSizeConfig])
 
   return (
-    <ScrollArea.Root className="flex-1 select-none overflow-y-auto ">
-      <ScrollArea.Viewport className="h-full w-full px-3">
-        <div className={styles.tabContent}>
-          <div className={styles.section}>
-            <span className={styles.sectionLabel}>字体设置</span>
-            <div className={styles.block}>
-              <span className={styles.blockLabel}>外语字体</span>
-              <div className="flex h-5 w-full items-center justify-between">
-                <Slider.Root
-                  value={[fontSizeConfig.foreignFont]}
-                  min={20}
-                  max={96}
-                  step={4}
-                  className="slider"
-                  onValueChange={onChangeForeignFontSize}
-                >
-                  <Slider.Track>
-                    <Slider.Range />
-                  </Slider.Track>
-                  <Slider.Thumb />
-                </Slider.Root>
-                <span className="ml-4 w-10 text-xs font-normal text-gray-600">{fontSizeConfig.foreignFont}px</span>
-              </div>
-            </div>
-
-            <div className={styles.block}>
-              <span className={styles.blockLabel}>中文字体</span>
-              <div className="flex h-5 w-full items-center justify-between">
-                <Slider.Root
-                  value={[fontSizeConfig.translateFont]}
-                  max={60}
-                  min={14}
-                  step={4}
-                  className="slider"
-                  onValueChange={onChangeTranslateFontSize}
-                >
-                  <Slider.Track>
-                    <Slider.Range />
-                  </Slider.Track>
-                  <Slider.Thumb />
-                </Slider.Root>
-                <span className="ml-4 w-10 text-xs font-normal text-gray-600">{fontSizeConfig.translateFont}px</span>
-              </div>
+    <ScrollArea className="flex-1 select-none overflow-y-auto">
+      <div className="flex w-full flex-col items-start justify-start gap-10 overflow-y-auto pb-40 pl-6 pr-9 pt-8">
+        <div className="flex w-full flex-col items-start gap-4">
+          <span className="pb-0 text-xl font-medium text-gray-600 dark:text-gray-300">字体设置</span>
+          <div className="flex w-full flex-col items-start gap-2 py-0 pl-4">
+            <span className="font-medium text-gray-600 dark:text-gray-300">外语字体</span>
+            <div className="flex h-5 w-full items-center justify-between">
+              <Slider
+                value={[fontSizeConfig.foreignFont]}
+                min={20}
+                max={96}
+                step={4}
+                className="w-[85%]"
+                onValueChange={onChangeForeignFontSize}
+              />
+              <span className="ml-4 w-10 text-xs font-normal text-gray-600 dark:text-gray-400">{fontSizeConfig.foreignFont}px</span>
             </div>
           </div>
-          <button className="my-btn-primary ml-4 disabled:bg-gray-300" type="button" onClick={onResetFontSize} title="重置字体设置">
-            重置字体设置
-          </button>
+
+          <div className="flex w-full flex-col items-start gap-2 py-0 pl-4">
+            <span className="font-medium text-gray-600 dark:text-gray-300">中文字体</span>
+            <div className="flex h-5 w-full items-center justify-between">
+              <Slider
+                value={[fontSizeConfig.translateFont]}
+                max={60}
+                min={14}
+                step={4}
+                className="w-[85%]"
+                onValueChange={onChangeTranslateFontSize}
+              />
+              <span className="ml-4 w-10 text-xs font-normal text-gray-600 dark:text-gray-400">{fontSizeConfig.translateFont}px</span>
+            </div>
+          </div>
         </div>
-      </ScrollArea.Viewport>
-      <ScrollArea.Scrollbar className="flex touch-none select-none bg-transparent " orientation="vertical"></ScrollArea.Scrollbar>
-    </ScrollArea.Root>
+        <Button className="ml-4" onClick={onResetFontSize} title="重置字体设置">
+          重置字体设置
+        </Button>
+      </div>
+    </ScrollArea>
   )
 }

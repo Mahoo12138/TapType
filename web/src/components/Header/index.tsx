@@ -2,65 +2,60 @@ import logo from "@/assets/logo.svg";
 import type { PropsWithChildren } from "react";
 import type React from "react";
 import { Link as RouterLink } from "@tanstack/react-router";
-import { useState } from "react";
 import { Settings, LogOut, Info } from "lucide-react";
-import { Box, Stack, Typography, Avatar, IconButton, Menu, MenuItem, Divider, Dropdown, MenuButton } from '@mui/joy';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header: React.FC<PropsWithChildren> = ({ children }) => {
   return (
-    <Box component="header" sx={{ py: 3, px: 4, width: '100%', bgcolor: 'background.body' }}>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', width: '100%' }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" width="100%">
+    <header className="py-3 px-4 w-full bg-background">
+      <div className="max-w-[1200px] mx-auto w-full">
+        <div className="flex flex-row items-center justify-between w-full">
           <RouterLink to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <img
               src={logo}
               style={{ height: '3.5rem', marginRight: 16 }}
               alt="Qwerty Learner Logo"
             />
-            <Typography level="h1" sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700, m: 0 }}>
+            <h1 className="text-[32px] text-primary font-bold m-0">
               Qwerty Learner
-            </Typography>
+            </h1>
           </RouterLink>
-          <Stack direction="row" alignItems="center" spacing={2}>
-            <Dropdown>
-              <MenuButton
-                slots={{ root: Avatar }}
-                slotProps={{
-                  root: {
-                    src: "https://avatars.githubusercontent.com/u/45908451",
-                    sx: { width: 50, height: 50 },
-                    alt: "User Avatar"
-                  }
-                }}
-              >
-                <Avatar
-
-                />
-              </MenuButton>
-              <Menu
-                placement="bottom-end"
-                sx={{
-                  minWidth: 180,
-                  '--Menu-item-radius': '8px',
-                  '--ListDivider-gap': '4px',
-                }}
-              >
-                <MenuItem component={RouterLink} to="/setting">
-                  <Settings size={18} style={{ marginRight: 8 }} />设置
-                </MenuItem>
-                <MenuItem component={RouterLink} to="/about">
-                  <Info size={18} style={{ marginRight: 8 }} />关于
-                </MenuItem>
-                <Divider />
-                <MenuItem sx={{ color: 'danger.plainColor' }}>
+          <div className="flex flex-row items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none rounded-full cursor-pointer">
+                <Avatar className="w-[50px] h-[50px]">
+                  <AvatarImage src="https://avatars.githubusercontent.com/u/45908451" alt="User Avatar" />
+                  <AvatarFallback>UA</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuItem asChild>
+                  <RouterLink to="/setting" className="cursor-pointer flex items-center w-full">
+                    <Settings size={18} style={{ marginRight: 8 }} />设置
+                  </RouterLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <RouterLink to="/about" className="cursor-pointer flex items-center w-full">
+                    <Info size={18} style={{ marginRight: 8 }} />关于
+                  </RouterLink>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-500 cursor-pointer flex items-center w-full focus:text-red-500 focus:bg-red-50">
                   <LogOut size={18} style={{ marginRight: 8 }} />退出登录
-                </MenuItem>
-              </Menu>
-            </Dropdown>
-          </Stack>
-        </Stack>
-      </Box>
-    </Box>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 };
 

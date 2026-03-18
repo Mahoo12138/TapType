@@ -1,12 +1,14 @@
-import { LoaderIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import useLoading from "@/hooks/useLoading";
 import useNavigateTo from "@/hooks/useNavigateTo";
-// import { workspaceStore } from "@/store/v2";
 import { useTranslate } from "@/utils/i18n";
 import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
-import { Button, Checkbox, Input, Box, Stack, Typography } from '@mui/joy';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const PasswordSignInForm = () => {
   const t = useTranslate();
@@ -80,14 +82,14 @@ const PasswordSignInForm = () => {
   };
 
   return (
-    <Box component="form" sx={{ width: '100%', mt: 2 }} onSubmit={handleFormSubmit}>
-      <Stack spacing={2} alignItems="flex-start" width="100%">
-        <Box width="100%">
-          <Typography level="body-sm" sx={{ lineHeight: 2, color: 'text.tertiary' }}>
+    <form className="w-full mt-2" onSubmit={handleFormSubmit}>
+      <div className="space-y-4 w-full">
+        <div className="w-full space-y-2">
+          <Label htmlFor="email" className="text-sm text-muted-foreground">
             {t("common.email")}
-          </Typography>
+          </Label>
           <Input
-            fullWidth
+            id="email"
             type="email"
             readOnly={actionBtnLoadingState.isLoading}
             placeholder={t("common.email")}
@@ -97,15 +99,15 @@ const PasswordSignInForm = () => {
             spellCheck={false}
             onChange={handleUsernameInputChanged}
             required
-            sx={{ bgcolor: 'background.body' }}
+            className="bg-background"
           />
-        </Box>
-        <Box width="100%">
-          <Typography level="body-sm" sx={{ lineHeight: 2, color: 'text.tertiary' }}>
+        </div>
+        <div className="w-full space-y-2">
+          <Label htmlFor="password" className="text-sm text-muted-foreground">
             {t("common.password")}
-          </Typography>
+          </Label>
           <Input
-            fullWidth
+            id="password"
             type="password"
             readOnly={actionBtnLoadingState.isLoading}
             placeholder={t("common.password")}
@@ -115,31 +117,39 @@ const PasswordSignInForm = () => {
             spellCheck={false}
             onChange={handlePasswordInputChanged}
             required
-            sx={{ bgcolor: 'background.body' }}
+            className="bg-background"
           />
-        </Box>
-      </Stack>
-      <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'start', alignItems: 'center', width: '100%', mt: 3, gap: 2 }}>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 w-full mt-6">
         <Checkbox
-          label={t("common.remember-me")}
+          id="remember"
           checked={remember}
-          onChange={(e) => setRemember(!!e.target.checked)}
+          onCheckedChange={(checked) => setRemember(!!checked)}
         />
-      </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'end', alignItems: 'center', width: '100%', mt: 6 }}>
+        <Label
+          htmlFor="remember"
+          className="text-sm font-normal cursor-pointer"
+        >
+          {t("common.remember-me")}
+        </Label>
+      </div>
+
+      <div className="flex justify-end items-center w-full mt-6">
         <Button
           type="submit"
-          color="primary"
           size="lg"
-          fullWidth
+          className="w-full"
           disabled={actionBtnLoadingState.isLoading}
-          onClick={handleSignInButtonClick}
-          startDecorator={actionBtnLoadingState.isLoading ? <LoaderIcon style={{ width: 20, height: 'auto', marginRight: 8, animation: 'spin 1s linear infinite', opacity: 0.6 }} /> : undefined}
         >
+          {actionBtnLoadingState.isLoading && (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          )}
           {t("common.sign-in")}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </form>
   );
 };
 

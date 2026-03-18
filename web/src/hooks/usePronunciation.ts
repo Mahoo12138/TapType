@@ -1,13 +1,11 @@
-import { pronunciationConfigAtom } from '@/store'
+import { useTypingConfigStore } from '@/store/typing'
 import type { PronunciationType } from '@/typings'
 import { addHowlListener } from '@/utils'
 import { romajiToHiragana } from '@/utils/kana'
 import noop from '@/utils/noop'
 import type { Howl } from 'howler'
-import { useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import useSound from 'use-sound'
-import type { HookOptions } from 'use-sound/dist/types'
 
 const pronunciationApi = 'https://dict.youdao.com/dictvoice?audio='
 export function generateWordSoundSrc(word: string, pronunciation: Exclude<PronunciationType, false>): string {
@@ -35,7 +33,7 @@ export function generateWordSoundSrc(word: string, pronunciation: Exclude<Pronun
 }
 
 export default function usePronunciationSound(word: string, isLoop?: boolean) {
-  const pronunciationConfig = useAtomValue(pronunciationConfigAtom)
+  const pronunciationConfig = useTypingConfigStore(s => s.pronunciationConfig)
   const loop = useMemo(() => (typeof isLoop === 'boolean' ? isLoop : pronunciationConfig.isLoop), [isLoop, pronunciationConfig.isLoop])
   const [isPlaying, setIsPlaying] = useState(false)
 
@@ -45,7 +43,7 @@ export default function usePronunciationSound(word: string, isLoop?: boolean) {
     loop,
     volume: pronunciationConfig.volume,
     rate: pronunciationConfig.rate,
-  } as HookOptions)
+  })
 
   useEffect(() => {
     if (!sound) return
@@ -73,7 +71,7 @@ export default function usePronunciationSound(word: string, isLoop?: boolean) {
 }
 
 export function usePrefetchPronunciationSound(word: string | undefined) {
-  const pronunciationConfig = useAtomValue(pronunciationConfigAtom)
+  const pronunciationConfig = useTypingConfigStore(s => s.pronunciationConfig)
 
   useEffect(() => {
     if (!word) return

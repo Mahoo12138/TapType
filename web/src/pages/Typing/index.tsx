@@ -8,9 +8,7 @@ import type { DictionaryResDto, WordResDto } from '@/api/dictionary'
 import type { WordWithIndex } from '@/typings'
 
 import type React from 'react'
-import { useEffect, useState, useRef } from 'react'
-import { useImmerReducer } from 'use-immer'
-import { Box, Stack, CircularProgress, Container } from '@mui/joy'
+import { useEffect, useRef, useReducer } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { isLegal } from '@/utils'
 import Speed from './components/Speed'
@@ -18,9 +16,10 @@ import { useConfetti } from './hooks/useConfetti'
 import ResultScreen from './components/ResultScreen'
 import { useTypingConfigStore } from '@/store/typing'
 import { useSaveChapterRecord } from './hooks/useSaveChapterRecord'
+import { Loader2 } from 'lucide-react'
 
 const Typing: React.FC = () => {
-  const [state, dispatch] = useImmerReducer(typingReducer, structuredClone(initialState))
+  const [state, dispatch] = useReducer(typingReducer, structuredClone(initialState))
   const {
     currentDictInfo,
     setCurrentDictInfo
@@ -152,42 +151,22 @@ const Typing: React.FC = () => {
       <Layout>
         <Header>
         </Header>
-        <Container sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Box sx={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}>
-            <Box sx={{
-              flex: 1,
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+        <div className="container mx-auto flex-1 flex flex-col items-center justify-center">
+          <div className="relative w-full h-full flex flex-col items-center">
+            <div className="flex-1 w-full flex flex-col items-center justify-center">
               {isLoading ? (
-                <Stack alignItems="center" justifyContent="center">
-                  <CircularProgress size="md" />
-                </Stack>
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
               ) : (
                 !state.isFinished && <>
                   <WordPanel />
                   <Speed />
                 </>
               )}
-            </Box>
-          </Box>
-        </Container>
+            </div>
+          </div>
+        </div>
       </Layout>
       {state.isFinished && <ResultScreen />}
     </TypingContext.Provider>

@@ -1,14 +1,19 @@
 import { TypingContext, TypingStateActionType } from '../../store'
+import { useDictStore, getCurrentDictInfo } from '@/store/dict'
 import { useTypingConfigStore } from '@/store/typing'
 import { CTRL } from '@/utils'
 import { useCallback, useContext, useMemo } from 'react'
 import { ArrowLeft as IconPrev, ArrowRight as IconNext } from 'lucide-react'
-import { Box, Typography, Tooltip } from '@mui/joy'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { cn } from '@/lib/utils'
 
 export default function PrevAndNextWord({ type }: LastAndNextWordProps) {
   const { state, dispatch } = useContext(TypingContext)!
-
-  // 迁移 jotai 状态到 zustand
   const wordDictationConfig = useTypingConfigStore(s => s.wordDictationConfig)
   const currentDictInfo = useTypingConfigStore(s => s.currentDictInfo)
   const currentLanguage = currentDictInfo?.language || 'en'
@@ -32,55 +37,45 @@ export default function PrevAndNextWord({ type }: LastAndNextWordProps) {
     return ''
   }, [word, currentLanguage, type, wordDictationConfig.isOpen])
 
+  if (!word) {
+    return <div />
+  }
+
   return (
-    <>
-      {word ? (
-        <Tooltip title={`快捷键: ${shortCutKey}`}>
-          <Box
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
             onClick={onClickWord}
-            sx={{
-              display: 'flex',
-              maxWidth: 320,
-              cursor: 'pointer',
-              userSelect: 'none',
-              alignItems: 'center',
-              color: 'text.secondary',
-              opacity: 0.6,
-              transition: 'opacity 0.2s',
-              '&:hover': { opacity: 1 },
-            }}
+            className="flex max-w-80 cursor-pointer select-none items-center text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
           >
-            {type === 'prev' && <IconPrev style={{ marginRight: 16, fontSize: 24, flexShrink: 0 }} />}
-            <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: type === 'next' ? 'flex-end' : 'flex-start', textAlign: type === 'next' ? 'right' : 'left', mx: 2 }}>
-              <Typography
-                level="body-lg"
-                sx={{
-                  fontFamily: 'monospace',
-                  fontSize: 24,
-                  fontWeight: 400,
-                  color: 'text.secondary',
-                  letterSpacing: !wordDictationConfig.isOpen ? 'normal' : '0.2em',
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
+            {type === 'prev' && <IconPrev className="mr-4 text-2xl flex-shrink-0" size={24} />}
+            <div className={cn(
+              "flex-1 min-w-0 flex flex-col mx-2",
+              type === 'next' ? 'items-end text-right' : 'items-start text-left'
+            )}>
+              <p
+                className={cn(
+                  "font-mono text-2xl font-normal text-muted-foreground max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
+                  !wordDictationConfig.isOpen ? 'tracking-normal' : 'tracking-[0.2em]'
+                )}
               >
                 {headWord}
-              </Typography>
+              </p>
               {state.isTransVisible && (
-                <Typography level="body-sm" sx={{ maxWidth: '100%', color: 'text.tertiary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p className="text-sm max-w-full text-muted-foreground/60 whitespace-nowrap overflow-hidden text-ellipsis">
                   {word.trans.join('；')}
-                </Typography>
+                </p>
               )}
-            </Box>
-            {type === 'next' && <IconNext style={{ marginLeft: 16, fontSize: 24, flexShrink: 0 }} />}
-          </Box>
-        </Tooltip>
-      ) : (
-        <Box />
-      )}
-    </>
+            </div>
+            {type === 'next' && <IconNext className="ml-4 text-2xl flex-shrink-0" size={24} />}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>快捷键: {shortCutKey}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

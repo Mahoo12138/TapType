@@ -2,7 +2,7 @@ packages:
   - server
   - web
   - docs
-  - packages/**
+  - shared/*
 
 overrides:
   "@types/react": "19.0.7"

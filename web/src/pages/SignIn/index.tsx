@@ -2,50 +2,37 @@ import AuthFooter from '@/components/AuthFooter';
 import PasswordSignInForm from '@/components/PasswordSignInForm';
 import { useTranslate } from "@/utils/i18n";
 import { Link } from '@tanstack/react-router';
-import { Box, Typography } from '@mui/joy';
 
 const SignIn = () => {
   const t = useTranslate();
 
   return (
-    <Box
-      sx={{
-        py: { xs: 4, sm: 8 },
-        width: 320,
-        maxWidth: '100%',
-        minHeight: '100svh',
-        mx: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'start',
-        alignItems: 'center',
-      }}
-    >
-      <Box sx={{ width: '100%', py: 4, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', mb: 6 }}>
+    <div className="py-4 sm:py-8 w-80 max-w-full min-h-svh mx-auto flex flex-col justify-start items-center">
+      <div className="w-full py-4 grow flex flex-col justify-center items-center">
+        <div className="w-full flex flex-row justify-center items-center mb-6">
           <img
-            style={{ height: 56, width: 'auto' }}
-            src={"/logo.webp"}
+            className="h-14 w-auto"
+            src="/logo.webp"
             alt=""
           />
-          <Typography level="h1" sx={{ pb: 2, ml: 2, fontSize: 40, color: 'text.primary', opacity: 0.8 }}>
+          <h1 className="pb-2 ml-2 text-[40px] text-foreground/80 font-bold">
             Qwerty
-          </Typography>
-        </Box>
+          </h1>
+        </div>
         <PasswordSignInForm />
-        <Typography level="body-sm" sx={{ width: '100%', mt: 4 }}>
-          <span style={{ color: 'var(--joy-palette-text-tertiary)' }}>{t("auth.sign-up-tip")}</span>
+        <p className="w-full mt-4 text-sm">
+          <span className="text-muted-foreground">{t("auth.sign-up-tip")}</span>
           <Link
             to="/auth/sign-up"
-            style={{ cursor: 'pointer', marginLeft: 8, color: '#2563eb', textDecoration: 'underline' }}
+            className="cursor-pointer ml-2 text-blue-600 underline hover:text-blue-700"
             viewTransition
           >
             {t("common.sign-up")}
           </Link>
-        </Typography>
-      </Box>
+        </p>
+      </div>
       <AuthFooter />
-    </Box>
+    </div>
   );
 };
 

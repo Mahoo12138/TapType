@@ -1,24 +1,21 @@
+import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
+import { useTypingConfigStore } from '@/store/typing'
+import type { Word } from '@/typings'
+import { useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { TypingContext, TypingStateActionType } from '../../store'
 import type { TypingState } from '../../store/type'
 import PrevAndNextWord from '../PrevAndNextWord'
 import Progress from '../Progress'
 import Phonetic from './components/Phonetic'
+import type { WordUpdateAction } from './components/InputHandler'
 import Translation from './components/Translation'
 import WordComponent from './components/Word'
-import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
-import { useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { useHotkeys } from 'react-hotkeys-hook'
-import type { Word } from '@/typings'
-import { Box, Stack, Typography } from '@mui/joy'
-import { useTypingConfigStore, ReviewModeInfo } from '@/store/typing'
-import type { WordUpdateAction } from './components/InputHandler'
-import InputHandler from './components/InputHandler'
 
 export default function WordPanel() {
   const { state, dispatch } = useContext(TypingContext)!
-  const phoneticConfig = useTypingConfigStore((s) => s.phoneticConfig)
   const isShowPrevAndNextWord = useTypingConfigStore((s) => s.isShowPrevAndNextWord)
-  const loopWordTimes = useTypingConfigStore((s) => s.loopWordTimes)
+  const loopWordTimes = useTypingConfigStore((s) => s.loopWordConfig.times)
   const reviewModeInfo = useTypingConfigStore((s) => s.reviewModeInfo)
   const setReviewModeInfo = useTypingConfigStore((s) => s.setReviewModeInfo)
   
@@ -49,12 +46,11 @@ export default function WordPanel() {
 
   const updateReviewRecord = useCallback(
     (state: TypingState) => {
-      setReviewModeInfo((old: ReviewModeInfo) => ({
-        ...old,
-        reviewRecord: old.reviewRecord ? { ...old.reviewRecord, index: state.chapterData.index } : undefined,
-      }))
+      setReviewModeInfo({
+        reviewRecord: reviewModeInfo.reviewRecord ? { ...reviewModeInfo.reviewRecord, index: state.chapterData.index } : undefined,
+      })
     },
-    [setReviewModeInfo],
+    [setReviewModeInfo, reviewModeInfo.reviewRecord],
   )
 
   // 处理单词输入和按键时间记录
@@ -68,7 +64,6 @@ export default function WordPanel() {
       }
       dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: {}, letterTimeArray: letterTimeArrayRef.current } })
     }
-    // Add composition handling if needed
   }, [dispatch])
 
   const onFinish = useCallback(() => {
@@ -88,11 +83,11 @@ export default function WordPanel() {
             type: TypingStateActionType.NEXT_WORD,
             payload: {
               updateReviewRecord,
-              letterTimeArray: letterTimeArrayRef.current, // Pass letterTimeArray here
+              letterTimeArray: letterTimeArrayRef.current,
             },
           })
         } else {
-          dispatch({ type: TypingStateActionType.NEXT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } }) // Pass letterTimeArray here
+          dispatch({ type: TypingStateActionType.NEXT_WORD, payload: { letterTimeArray: letterTimeArrayRef.current } })
         }
       }
     } else {
@@ -110,7 +105,6 @@ export default function WordPanel() {
     reloadCurrentWordComponent,
     isReviewMode,
     updateReviewRecord,
-    setReviewModeInfo,
   ])
 
   const onSkipWord = useCallback(
@@ -174,89 +168,33 @@ export default function WordPanel() {
   }, [isShowTranslation, state.isTransVisible])
 
   return (
-    <Stack
-      direction="column"
-      alignItems="center"
-      justifyContent="center"
-      sx={{ height: '100%', width: '100%', flex: 1 }}
-    >
+    <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
       {/* 顶部导航/切换 */}
-      <Box
-        sx={{
-          width: '100%',
-          height: 96,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          px: 6,
-          pt: 2.5,
-          flexShrink: 0,
-          flexGrow: 0,
-        }}
-      >
+      <div className="flex h-24 w-full flex-shrink-0 flex-grow-0 items-center justify-between px-6 pt-2.5">
         {isShowPrevAndNextWord && state.isTyping && (
           <>
             <PrevAndNextWord type="prev" />
             <PrevAndNextWord type="next" />
           </>
         )}
-      </Box>
+      </div>
 
-      {/* 单词输入区 */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {currentWord && (
-          <Box sx={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-            {!state.isTyping && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 20,
-                  bgcolor: '#fff',
-                  opacity: 0.8,
-                  borderRadius: 1,
-                }}
-              >
-                <Typography level="h3">按下任意键开始练习</Typography>
-              </Box>
-            )}
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                maxWidth: '800px',
-                gap: 1,
-              }}
-            >
-              <Phonetic word={currentWord} />
-              <WordComponent word={currentWord} onFinish={onFinish} />
-              {shouldShowTranslation && (
-                <Translation
-                  trans={currentWord.trans.join('；')}
-                  showTrans={shouldShowTranslation}
-                  onMouseEnter={() => handleShowTranslation(true)}
-                  onMouseLeave={() => handleShowTranslation(false)}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-      </Box>
-      <InputHandler updateInput={updateInput} />
-    </Stack>
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
+        <div className="flex w-full flex-1 flex-col items-center justify-center pt-5">
+          <Translation
+            trans={currentWord.trans.join('；')}
+            showTrans={shouldShowTranslation}
+            onMouseEnter={() => handleShowTranslation(true)}
+            onMouseLeave={() => handleShowTranslation(false)}
+          />
+          <Phonetic word={currentWord} />
+          <WordComponent key={wordComponentKey} word={currentWord} onFinish={onFinish} />
+        </div>
+      </div>
+
+      <div className="flex w-full flex-shrink-0 flex-grow-0 flex-col items-center justify-center px-12 pb-12">
+        <Progress className="w-full" />
+      </div>
+    </div>
   )
 }

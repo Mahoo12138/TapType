@@ -1,8 +1,9 @@
 // import { workspaceStore } from "@/store/workspace";
+import type { Appearance, Locale } from '@shared/typings';
 import AppearanceSelect from "./AppearanceSelect";
 import LocaleSelect from "./LocaleSelect";
 import { useGlobalStore } from "@/store/global";
-import { Box, Stack } from '@mui/joy';
+import { cn } from "@/lib/utils";
 
 interface Props {
   className?: string;
@@ -18,26 +19,20 @@ const AuthFooter = ({ className }: Props) => {
   };
 
   return (
-    <Box
-      sx={{
-        width: 320,
-        maxWidth: '100%',
-        mx: 'auto',
-        mt: 2,
-        mb: 1,
-        display: 'flex',
-        justifyContent: 'center',
-      }}
-      className={className}
+    <div
+      className={cn(
+        "mx-auto mt-4 mb-2 flex w-[320px] max-w-full justify-center",
+        className
+      )}
     >
-      <Stack direction="row" spacing={2} width="100%" justifyContent="center" alignItems="center">
+      <div className="flex w-full flex-row items-center justify-center gap-4">
         <LocaleSelect value={locale} onChange={handleLocaleSelectChange} />
         <AppearanceSelect
-          value={appearance as Appearance}
+          value={appearance}
           onChange={handleAppearanceSelectChange}
         />
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 };
 
