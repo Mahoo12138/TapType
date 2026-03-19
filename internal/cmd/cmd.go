@@ -12,6 +12,16 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 
 	"taptype/internal/controller"
+	achievementCtrl "taptype/internal/controller/achievement"
+	adminCtrl "taptype/internal/controller/admin"
+	analysisCtrl "taptype/internal/controller/analysis"
+	authCtrl "taptype/internal/controller/auth"
+	dailyCtrl "taptype/internal/controller/daily"
+	errrecordCtrl "taptype/internal/controller/errrecord"
+	goalCtrl "taptype/internal/controller/goal"
+	practiceCtrl "taptype/internal/controller/practice"
+	sentencebankCtrl "taptype/internal/controller/sentencebank"
+	wordbankCtrl "taptype/internal/controller/wordbank"
 	"taptype/internal/middleware"
 	"taptype/resource"
 	achievementService "taptype/internal/service/achievement"
@@ -55,18 +65,8 @@ var (
 			wordSvc := wordService.NewService(gormDB)
 			sentenceSvc := sentenceService.NewService(gormDB)
 
-			// Initialize controllers
-			authCtrl := controller.NewAuthController(authSvc)
-			errorsCtrl := controller.NewErrorsController(errorsSvc)
-			analysisCtrl := controller.NewAnalysisController(analysisSvc)
-			dailyCtrl := controller.NewDailyController(dailySvc)
-			practiceCtrl := controller.NewPracticeController(practiceSvc)
-			wordBankCtrl := controller.NewWordBankController(wordSvc)
-			sentenceBankCtrl := controller.NewSentenceBankController(sentenceSvc)
-			wsPracticeCtrl := controller.NewWSPracticeController()
-			goalCtrl := controller.NewGoalController(goalSvc)
-			achievementCtrl := controller.NewAchievementController(achievementSvc)
-			adminCtrl := controller.NewAdminController(gormDB)
+			// WebSocket controller (manual handler, not GoFrame Bind pattern)
+			wsPracticeController := controller.NewWSPracticeController()
 
 			s := g.Server()
 
@@ -79,16 +79,15 @@ var (
 				})
 			})
 
-			// API routes
+			// API routes — GoFrame standard Bind pattern
 			s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.CORS)
+				group.Middleware(middleware.HandlerResponse)
 
 				// Public auth routes (no JWT required) — stricter rate limit
-				group.Group("/auth", func(authGroup *ghttp.RouterGroup) {
-					authGroup.Middleware(middleware.RateLimit("auth", middleware.RateLimitConfig{MaxTokens: 5, RefillRate: 1}))
-					authGroup.POST("/register", authCtrl.Register)
-					authGroup.POST("/login", authCtrl.Login)
-					authGroup.POST("/refresh", authCtrl.Refresh)
+				group.Group("/", func(publicGroup *ghttp.RouterGroup) {
+					publicGroup.Middleware(middleware.RateLimit("auth", middleware.RateLimitConfig{MaxTokens: 5, RefillRate: 1}))
+					publicGroup.Bind(authCtrl.NewV1Public(authSvc))
 				})
 
 				// Protected routes (JWT required)
@@ -96,75 +95,28 @@ var (
 					protectedGroup.Middleware(middleware.JWTAuth(jwtSecret))
 					protectedGroup.Middleware(middleware.RateLimit("general", middleware.RateLimitConfig{MaxTokens: 30, RefillRate: 10}))
 
-					protectedGroup.GET("/auth/me", authCtrl.Me)
-
-					// Practice routes
-					protectedGroup.POST("/practice/sessions", practiceCtrl.CreateSession)
-					protectedGroup.GET("/practice/sessions", practiceCtrl.ListSessions)
-					protectedGroup.GET("/practice/sessions/{id}", practiceCtrl.GetSession)
-					protectedGroup.PATCH("/practice/sessions/{id}", practiceCtrl.CompletePractice)
-
-					// Word bank routes
-					protectedGroup.GET("/word-banks", wordBankCtrl.ListBanks)
-					protectedGroup.POST("/word-banks", wordBankCtrl.CreateBank)
-					protectedGroup.GET("/word-banks/{id}", wordBankCtrl.GetBank)
-					protectedGroup.PUT("/word-banks/{id}", wordBankCtrl.UpdateBank)
-					protectedGroup.DELETE("/word-banks/{id}", wordBankCtrl.DeleteBank)
-					protectedGroup.GET("/word-banks/{id}/words", wordBankCtrl.ListWords)
-					protectedGroup.POST("/word-banks/{id}/words", wordBankCtrl.CreateWord)
-					protectedGroup.POST("/word-banks/{id}/words/import", wordBankCtrl.ImportWords)
-					protectedGroup.GET("/word-banks/{id}/export", wordBankCtrl.ExportWords)
-					protectedGroup.PUT("/words/{wordId}", wordBankCtrl.UpdateWord)
-					protectedGroup.DELETE("/words/{wordId}", wordBankCtrl.DeleteWord)
-
-					// Sentence bank routes
-					protectedGroup.GET("/sentence-banks", sentenceBankCtrl.ListBanks)
-					protectedGroup.POST("/sentence-banks", sentenceBankCtrl.CreateBank)
-					protectedGroup.GET("/sentence-banks/{id}", sentenceBankCtrl.GetBank)
-					protectedGroup.PUT("/sentence-banks/{id}", sentenceBankCtrl.UpdateBank)
-					protectedGroup.DELETE("/sentence-banks/{id}", sentenceBankCtrl.DeleteBank)
-					protectedGroup.GET("/sentence-banks/{id}/sentences", sentenceBankCtrl.ListSentences)
-					protectedGroup.POST("/sentence-banks/{id}/sentences", sentenceBankCtrl.CreateSentence)
-					protectedGroup.POST("/sentence-banks/{id}/sentences/import", sentenceBankCtrl.ImportSentences)
-					protectedGroup.GET("/sentence-banks/{id}/export", sentenceBankCtrl.ExportSentences)
-					protectedGroup.PUT("/sentences/{sentenceId}", sentenceBankCtrl.UpdateSentence)
-					protectedGroup.DELETE("/sentences/{sentenceId}", sentenceBankCtrl.DeleteSentence)
-
-					// Error records & review
-					protectedGroup.GET("/errors", errorsCtrl.ListErrors)
-					protectedGroup.GET("/errors/review-queue", errorsCtrl.GetReviewQueue)
-					protectedGroup.POST("/errors/review-session", errorsCtrl.CreateReviewSession)
-
-					// Analysis routes
-					protectedGroup.GET("/analysis/trend", analysisCtrl.GetTrend)
-					protectedGroup.GET("/analysis/keymap", analysisCtrl.GetKeymap)
-					protectedGroup.GET("/analysis/summary", analysisCtrl.GetSummary)
-
-					// Daily record
-					protectedGroup.GET("/daily", dailyCtrl.GetToday)
-
-					// Goals CRUD
-					protectedGroup.GET("/goals", goalCtrl.ListGoals)
-					protectedGroup.POST("/goals", goalCtrl.CreateGoal)
-					protectedGroup.PUT("/goals/{id}", goalCtrl.UpdateGoal)
-					protectedGroup.DELETE("/goals/{id}", goalCtrl.DeleteGoal)
-
-					// Achievements
-					protectedGroup.GET("/achievements", achievementCtrl.ListAchievements)
+					protectedGroup.Bind(
+						authCtrl.NewV1(authSvc),
+						practiceCtrl.NewV1(practiceSvc),
+						wordbankCtrl.NewV1(wordSvc),
+						sentencebankCtrl.NewV1(sentenceSvc),
+						analysisCtrl.NewV1(analysisSvc),
+						errrecordCtrl.NewV1(errorsSvc),
+						goalCtrl.NewV1(goalSvc),
+						dailyCtrl.NewV1(dailySvc),
+						achievementCtrl.NewV1(achievementSvc),
+					)
 
 					// Admin routes (requires admin role)
-					protectedGroup.Group("/admin", func(adminGroup *ghttp.RouterGroup) {
+					protectedGroup.Group("/", func(adminGroup *ghttp.RouterGroup) {
 						adminGroup.Middleware(middleware.AdminOnly)
-						adminGroup.GET("/users", adminCtrl.ListUsers)
-						adminGroup.PUT("/users/{id}", adminCtrl.UpdateUser)
-						adminGroup.GET("/word-banks", adminCtrl.ListPublicWordBanks)
-						adminGroup.GET("/sentence-banks", adminCtrl.ListPublicSentenceBanks)
+						adminGroup.Bind(adminCtrl.NewV1(gormDB))
 					})
 				})
 			})
 
 			// WebSocket route (outside API group, uses own auth check)
-			s.BindHandler("/ws/practice", wsPracticeCtrl.Handle)
+			s.BindHandler("/ws/practice", wsPracticeController.Handle)
 
 			// SPA fallback: serve embedded frontend for all non-API paths
 			frontendFS, _ := fs.Sub(resource.Frontend, "frontend/dist")
