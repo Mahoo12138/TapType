@@ -8,6 +8,7 @@ type PracticeSession struct {
 	Mode       string     `gorm:"type:text;not null" json:"mode"`
 	SourceType string     `gorm:"type:text;not null" json:"source_type"`
 	SourceID   string     `gorm:"type:text" json:"source_id"`
+	ItemCount  int        `gorm:"default:0" json:"item_count"`
 	StartedAt  time.Time  `gorm:"not null" json:"started_at"`
 	EndedAt    *time.Time `json:"ended_at"`
 	DurationMs *int64     `json:"duration_ms"`

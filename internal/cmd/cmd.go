@@ -18,6 +18,8 @@ import (
 	dailyService "taptype/internal/service/daily"
 	errorsService "taptype/internal/service/errors"
 	practiceService "taptype/internal/service/practice"
+	sentenceService "taptype/internal/service/sentence"
+	wordService "taptype/internal/service/word"
 	"taptype/utility/db"
 )
 
@@ -45,6 +47,8 @@ var (
 			analysisSvc := analysisService.NewService(gormDB)
 			dailySvc := dailyService.NewService(gormDB)
 			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc)
+			wordSvc := wordService.NewService(gormDB)
+			sentenceSvc := sentenceService.NewService(gormDB)
 
 			// Initialize controllers
 			authCtrl := controller.NewAuthController(authSvc)
@@ -52,6 +56,9 @@ var (
 			analysisCtrl := controller.NewAnalysisController(analysisSvc)
 			dailyCtrl := controller.NewDailyController(dailySvc)
 			practiceCtrl := controller.NewPracticeController(practiceSvc)
+			wordBankCtrl := controller.NewWordBankController(wordSvc)
+			sentenceBankCtrl := controller.NewSentenceBankController(sentenceSvc)
+			wsPracticeCtrl := controller.NewWSPracticeController()
 
 			s := g.Server()
 
@@ -82,7 +89,36 @@ var (
 					protectedGroup.GET("/auth/me", authCtrl.Me)
 
 					// Practice routes
+					protectedGroup.POST("/practice/sessions", practiceCtrl.CreateSession)
+					protectedGroup.GET("/practice/sessions", practiceCtrl.ListSessions)
+					protectedGroup.GET("/practice/sessions/{id}", practiceCtrl.GetSession)
 					protectedGroup.PATCH("/practice/sessions/{id}", practiceCtrl.CompletePractice)
+
+					// Word bank routes
+					protectedGroup.GET("/word-banks", wordBankCtrl.ListBanks)
+					protectedGroup.POST("/word-banks", wordBankCtrl.CreateBank)
+					protectedGroup.GET("/word-banks/{id}", wordBankCtrl.GetBank)
+					protectedGroup.PUT("/word-banks/{id}", wordBankCtrl.UpdateBank)
+					protectedGroup.DELETE("/word-banks/{id}", wordBankCtrl.DeleteBank)
+					protectedGroup.GET("/word-banks/{id}/words", wordBankCtrl.ListWords)
+					protectedGroup.POST("/word-banks/{id}/words", wordBankCtrl.CreateWord)
+					protectedGroup.POST("/word-banks/{id}/words/import", wordBankCtrl.ImportWords)
+					protectedGroup.GET("/word-banks/{id}/export", wordBankCtrl.ExportWords)
+					protectedGroup.PUT("/words/{wordId}", wordBankCtrl.UpdateWord)
+					protectedGroup.DELETE("/words/{wordId}", wordBankCtrl.DeleteWord)
+
+					// Sentence bank routes
+					protectedGroup.GET("/sentence-banks", sentenceBankCtrl.ListBanks)
+					protectedGroup.POST("/sentence-banks", sentenceBankCtrl.CreateBank)
+					protectedGroup.GET("/sentence-banks/{id}", sentenceBankCtrl.GetBank)
+					protectedGroup.PUT("/sentence-banks/{id}", sentenceBankCtrl.UpdateBank)
+					protectedGroup.DELETE("/sentence-banks/{id}", sentenceBankCtrl.DeleteBank)
+					protectedGroup.GET("/sentence-banks/{id}/sentences", sentenceBankCtrl.ListSentences)
+					protectedGroup.POST("/sentence-banks/{id}/sentences", sentenceBankCtrl.CreateSentence)
+					protectedGroup.POST("/sentence-banks/{id}/sentences/import", sentenceBankCtrl.ImportSentences)
+					protectedGroup.GET("/sentence-banks/{id}/export", sentenceBankCtrl.ExportSentences)
+					protectedGroup.PUT("/sentences/{sentenceId}", sentenceBankCtrl.UpdateSentence)
+					protectedGroup.DELETE("/sentences/{sentenceId}", sentenceBankCtrl.DeleteSentence)
 
 					// Error records & review
 					protectedGroup.GET("/errors", errorsCtrl.ListErrors)
@@ -98,6 +134,9 @@ var (
 					protectedGroup.GET("/daily", dailyCtrl.GetToday)
 				})
 			})
+
+			// WebSocket route (outside API group, uses own auth check)
+			s.BindHandler("/ws/practice", wsPracticeCtrl.Handle)
 
 			// SPA fallback: serve embedded frontend for all non-API paths
 			frontendFS, _ := fs.Sub(resource.Frontend, "frontend/dist")
