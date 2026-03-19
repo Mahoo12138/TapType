@@ -13,7 +13,11 @@ import (
 	"taptype/internal/controller"
 	"taptype/internal/middleware"
 	"taptype/resource"
+	analysisService "taptype/internal/service/analysis"
 	authService "taptype/internal/service/auth"
+	dailyService "taptype/internal/service/daily"
+	errorsService "taptype/internal/service/errors"
+	practiceService "taptype/internal/service/practice"
 	"taptype/utility/db"
 )
 
@@ -37,9 +41,17 @@ var (
 
 			// Initialize services
 			authSvc := authService.NewService(gormDB, jwtSecret)
+			errorsSvc := errorsService.NewService(gormDB)
+			analysisSvc := analysisService.NewService(gormDB)
+			dailySvc := dailyService.NewService(gormDB)
+			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc)
 
 			// Initialize controllers
 			authCtrl := controller.NewAuthController(authSvc)
+			errorsCtrl := controller.NewErrorsController(errorsSvc)
+			analysisCtrl := controller.NewAnalysisController(analysisSvc)
+			dailyCtrl := controller.NewDailyController(dailySvc)
+			practiceCtrl := controller.NewPracticeController(practiceSvc)
 
 			s := g.Server()
 
@@ -69,7 +81,21 @@ var (
 
 					protectedGroup.GET("/auth/me", authCtrl.Me)
 
-					// Future Phase 2+ routes will be added here
+					// Practice routes
+					protectedGroup.PATCH("/practice/sessions/{id}", practiceCtrl.CompletePractice)
+
+					// Error records & review
+					protectedGroup.GET("/errors", errorsCtrl.ListErrors)
+					protectedGroup.GET("/errors/review-queue", errorsCtrl.GetReviewQueue)
+					protectedGroup.POST("/errors/review-session", errorsCtrl.CreateReviewSession)
+
+					// Analysis routes
+					protectedGroup.GET("/analysis/trend", analysisCtrl.GetTrend)
+					protectedGroup.GET("/analysis/keymap", analysisCtrl.GetKeymap)
+					protectedGroup.GET("/analysis/summary", analysisCtrl.GetSummary)
+
+					// Daily record
+					protectedGroup.GET("/daily", dailyCtrl.GetToday)
 				})
 			})
 
