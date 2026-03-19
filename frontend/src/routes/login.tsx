@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useLogin } from '@/api/auth'
+import { usePublicSystemSettings } from '@/api/settings'
 import { useAuthStore } from '@/stores/authStore'
 import { Keyboard } from 'lucide-react'
 
@@ -12,6 +13,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const login = useLogin()
+  const publicSettings = usePublicSystemSettings(['system.owner_user_id'])
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -19,6 +21,16 @@ function LoginPage() {
 
   if (user) {
     navigate({ to: '/' })
+    return null
+  }
+
+  if (publicSettings.isLoading) {
+    return null
+  }
+
+  const ownerUserID = publicSettings.data?.['system.owner_user_id'] ?? ''
+  if (!ownerUserID.trim()) {
+    navigate({ to: '/register-admin' })
     return null
   }
 

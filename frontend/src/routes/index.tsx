@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/authStore'
+import { usePublicSystemSettings } from '@/api/settings'
 import { useDaily } from '@/api/daily'
 import { useSummary } from '@/api/analysis'
 import { useReviewQueue } from '@/api/errors'
@@ -23,9 +24,19 @@ export const Route = createFileRoute('/')({
 function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
+  const publicSettings = usePublicSystemSettings(['system.owner_user_id'])
+
+  if (!user && publicSettings.isLoading) {
+    return null
+  }
 
   if (!user) {
-    navigate({ to: '/login' })
+    const ownerUserID = publicSettings.data?.['system.owner_user_id'] ?? ''
+    if (!ownerUserID.trim()) {
+      navigate({ to: '/register-admin' })
+    } else {
+      navigate({ to: '/login' })
+    }
     return null
   }
 

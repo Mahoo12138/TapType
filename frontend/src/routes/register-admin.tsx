@@ -1,16 +1,16 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useRegister, useLogin } from '@/api/auth'
+import { useLogin, useRegisterInitialAdmin } from '@/api/auth'
 import { usePublicSystemSettings } from '@/api/settings'
-import { Keyboard } from 'lucide-react'
+import { Shield, Crown } from 'lucide-react'
 
-export const Route = createFileRoute('/register')({
-  component: RegisterPage,
+export const Route = createFileRoute('/register-admin')({
+  component: RegisterAdminPage,
 })
 
-function RegisterPage() {
+function RegisterAdminPage() {
   const navigate = useNavigate()
-  const register = useRegister()
+  const registerAdmin = useRegisterInitialAdmin()
   const login = useLogin()
   const publicSettings = usePublicSystemSettings(['system.owner_user_id'])
 
@@ -20,13 +20,9 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
 
-  if (publicSettings.isLoading) {
-    return null
-  }
-
   const ownerUserID = publicSettings.data?.['system.owner_user_id'] ?? ''
-  if (!ownerUserID.trim()) {
-    navigate({ to: '/register-admin' })
+  if (publicSettings.isSuccess && ownerUserID.trim()) {
+    navigate({ to: '/login' })
     return null
   }
 
@@ -44,7 +40,7 @@ function RegisterPage() {
       return
     }
 
-    register.mutate(
+    registerAdmin.mutate(
       { username, email, password },
       {
         onSuccess: () => {
@@ -57,7 +53,7 @@ function RegisterPage() {
           )
         },
         onError: (err) => {
-          setError(err.message || '注册失败')
+          setError(err.message || '站长注册失败')
         },
       },
     )
@@ -70,11 +66,13 @@ function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Keyboard className="mx-auto h-10 w-10 text-indigo-600 dark:text-indigo-400" strokeWidth={1.5} />
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+            <Crown className="h-6 w-6" strokeWidth={1.8} />
+          </div>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            TapType
+            初始化站点
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">创建新账户</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">创建首个站长账户（管理员）</p>
         </div>
 
         <form
@@ -87,9 +85,14 @@ function RegisterPage() {
             </div>
           )}
 
+          <div className="mb-4 flex items-start gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>系统检测到当前没有任何用户，请先完成站长注册后再使用网站。</span>
+          </div>
+
           <div className="mb-4">
             <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              用户名
+              站长用户名
             </label>
             <input
               id="username"
@@ -107,7 +110,7 @@ function RegisterPage() {
 
           <div className="mb-4">
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              邮箱
+              站长邮箱
             </label>
             <input
               id="email"
@@ -115,7 +118,7 @@ function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={inputCls}
-              placeholder="your@email.com"
+              placeholder="admin@email.com"
               required
             />
           </div>
@@ -153,22 +156,17 @@ function RegisterPage() {
 
           <button
             type="submit"
-            disabled={register.isPending || login.isPending}
+            disabled={publicSettings.isLoading || registerAdmin.isPending || login.isPending}
             className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
-            {register.isPending ? '注册中...' : login.isPending ? '自动登录中...' : '注册'}
+            {publicSettings.isLoading
+              ? '检查系统状态...'
+              : registerAdmin.isPending
+                ? '创建站长中...'
+                : login.isPending
+                  ? '自动登录中...'
+                  : '创建站长并进入系统'}
           </button>
-
-          <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            已有账户？{' '}
-            <button
-              type="button"
-              onClick={() => navigate({ to: '/login' })}
-              className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-            >
-              立即登录
-            </button>
-          </p>
         </form>
       </div>
     </div>
