@@ -1,8 +1,5 @@
 # TapType — 项目完整技术规格文档
 
-> 本文档面向 AI 编程 Agent 使用。所有设计决策、架构图、数据库表结构、目录规范和开发任务均已完整描述，可直接据此生成代码。
-
----
 
 ## 目录
 
@@ -1667,19 +1664,19 @@ export default defineConfig({
 
 ### Phase 1：基础搭建（第 1-2 周）
 
-**交付目标：** 可以运行的 Docker 镜像，能注册登录，前后端联通。
+**交付目标：** 能注册登录，前后端联通。
 
 **后端任务：**
 - [ ] GoFrame 项目初始化，目录结构按第 5 节创建
 - [ ] `utility/db` 实现 SQLite/PG 双驱动切换
-- [ ] GORM AutoMigrate 跑通全部表结构
+- [ ] 使用 goose 管理表结构
 - [ ] JWT 注册/登录/鉴权中间件
 - [ ] `GET /api/v1/auth/me` 验证鉴权流程
 - [ ] `resource/embed.go` + SPA fallback handler
 - [ ] Dockerfile 三阶段构建验证
 
 **前端任务：**
-- [ ] Vite + React 19 + Tailwind CSS v4 初始化
+- [ ] Vite + React 19 + Tailwind CSS v4 项目初始化
 - [ ] TanStack Router 文件路由配置
 - [ ] TanStack Query 全局配置（baseURL、token 注入、错误拦截）
 - [ ] Zustand auth store（登录状态持久化到 localStorage）
@@ -1687,7 +1684,7 @@ export default defineConfig({
 - [ ] 基础布局（侧边导航 + 主内容区）
 - [ ] Vite proxy 联调验证
 
-**验收标准：** `docker compose up` 后浏览器访问 `:8080` 能完成注册和登录。
+**验收标准：** 项目启动后浏览器访问 `:8080` 能完成注册和登录。
 
 ---
 
