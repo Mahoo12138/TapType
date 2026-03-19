@@ -14,6 +14,10 @@ type ISettingsV1 interface {
 	BatchSetUserSettings(ctx context.Context, req *v1.BatchSetUserSettingsReq) (res *v1.BatchSetUserSettingsRes, err error)
 }
 
+type ISettingsPublicV1 interface {
+	GetPublicSystemSettings(ctx context.Context, req *v1.GetPublicSystemSettingsReq) (res *v1.GetPublicSystemSettingsRes, err error)
+}
+
 type IAdminSettingsV1 interface {
 	// System settings (admin only)
 	GetSystemSettings(ctx context.Context, req *v1.GetSystemSettingsReq) (res *v1.GetSystemSettingsRes, err error)

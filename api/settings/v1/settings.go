@@ -4,6 +4,14 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
+// ---- Public settings ----
+
+type GetPublicSystemSettingsReq struct {
+	g.Meta `path:"/settings/public/system" method:"get" tags:"Settings" summary:"Get public system settings by keys"`
+	Keys   string `json:"keys" in:"query"`
+}
+type GetPublicSystemSettingsRes struct{}
+
 // ---- User settings ----
 
 type GetUserSettingsReq struct {
