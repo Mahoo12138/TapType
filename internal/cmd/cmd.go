@@ -21,6 +21,7 @@ import (
 	goalCtrl "taptype/internal/controller/goal"
 	practiceCtrl "taptype/internal/controller/practice"
 	sentencebankCtrl "taptype/internal/controller/sentencebank"
+	settingsCtrl "taptype/internal/controller/settings"
 	wordbankCtrl "taptype/internal/controller/wordbank"
 	"taptype/internal/middleware"
 	"taptype/resource"
@@ -32,6 +33,7 @@ import (
 	goalService "taptype/internal/service/goal"
 	practiceService "taptype/internal/service/practice"
 	sentenceService "taptype/internal/service/sentence"
+	settingsService "taptype/internal/service/settings"
 	wordService "taptype/internal/service/word"
 	"taptype/utility/db"
 )
@@ -64,6 +66,7 @@ var (
 			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc, achievementSvc, goalSvc)
 			wordSvc := wordService.NewService(gormDB)
 			sentenceSvc := sentenceService.NewService(gormDB)
+			settingsSvc := settingsService.NewService(gormDB)
 
 			// WebSocket controller (manual handler, not GoFrame Bind pattern)
 			wsPracticeController := controller.NewWSPracticeController()
@@ -105,12 +108,16 @@ var (
 						goalCtrl.NewV1(goalSvc),
 						dailyCtrl.NewV1(dailySvc),
 						achievementCtrl.NewV1(achievementSvc),
+						settingsCtrl.NewV1(settingsSvc),
 					)
 
 					// Admin routes (requires admin role)
 					protectedGroup.Group("/", func(adminGroup *ghttp.RouterGroup) {
 						adminGroup.Middleware(middleware.AdminOnly)
-						adminGroup.Bind(adminCtrl.NewV1(gormDB))
+						adminGroup.Bind(
+							adminCtrl.NewV1(gormDB),
+							settingsCtrl.NewAdminV1(settingsSvc),
+						)
 					})
 				})
 			})
