@@ -9,15 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as ErrorsRouteImport } from './routes/errors'
 import { Route as ContentRouteImport } from './routes/content'
 import { Route as AnalysisRouteImport } from './routes/analysis'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -38,6 +46,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ErrorsRoute = ErrorsRouteImport.update({
   id: '/errors',
   path: '/errors',
@@ -53,6 +66,11 @@ const AnalysisRoute = AnalysisRouteImport.update({
   path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -61,81 +79,109 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
+  '/goals': typeof GoalsRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
+  '/goals': typeof GoalsRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
+  '/goals': typeof GoalsRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achievements'
     | '/analysis'
     | '/content'
     | '/errors'
+    | '/goals'
     | '/history'
     | '/login'
     | '/practice'
     | '/register'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/achievements'
     | '/analysis'
     | '/content'
     | '/errors'
+    | '/goals'
     | '/history'
     | '/login'
     | '/practice'
     | '/register'
+    | '/settings'
   id:
     | '__root__'
     | '/'
+    | '/achievements'
     | '/analysis'
     | '/content'
     | '/errors'
+    | '/goals'
     | '/history'
     | '/login'
     | '/practice'
     | '/register'
+    | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
   AnalysisRoute: typeof AnalysisRoute
   ContentRoute: typeof ContentRoute
   ErrorsRoute: typeof ErrorsRoute
+  GoalsRoute: typeof GoalsRoute
   HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   RegisterRoute: typeof RegisterRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -164,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/errors': {
       id: '/errors'
       path: '/errors'
@@ -185,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -197,13 +257,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
   AnalysisRoute: AnalysisRoute,
   ContentRoute: ContentRoute,
   ErrorsRoute: ErrorsRoute,
+  GoalsRoute: GoalsRoute,
   HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   RegisterRoute: RegisterRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

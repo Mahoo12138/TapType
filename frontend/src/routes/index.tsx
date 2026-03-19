@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useDaily } from '@/api/daily'
 import { useSummary } from '@/api/analysis'
 import { useReviewQueue } from '@/api/errors'
+import { useGoals } from '@/api/goals'
 import {
   Keyboard,
   Flame,
@@ -38,6 +39,7 @@ function Dashboard() {
       </p>
 
       <TodaySection />
+      <GoalsOverview />
       <SummarySection />
       <QuickActions />
     </div>
@@ -95,6 +97,71 @@ function SummarySection() {
         <MiniStat label="最佳 WPM" value={summary.best_wpm.toFixed(1)} icon={TrendingUp} />
         <MiniStat label="平均准确率" value={`${(summary.avg_accuracy * 100).toFixed(1)}%`} icon={Target} />
         <MiniStat label="最长连续" value={`${summary.longest_streak} 天`} icon={Award} />
+      </div>
+    </div>
+  )
+}
+
+const GOAL_TYPE_LABELS: Record<string, string> = {
+  duration: '练习时长',
+  wpm: '平均 WPM',
+  accuracy: '准确率',
+  practice_count: '练习次数',
+}
+
+function GoalsOverview() {
+  const { data: goals = [] } = useGoals()
+  const navigate = useNavigate()
+  const active = goals.filter((g) => g.is_active === 1)
+
+  if (active.length === 0) return null
+
+  return (
+    <div className="mb-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">今日目标</h2>
+        <button
+          onClick={() => navigate({ to: '/goals' })}
+          className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        >
+          管理目标 →
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {active.slice(0, 3).map((goal) => {
+          const progress = goal.target_value > 0
+            ? Math.min(100, (goal.current_value / goal.target_value) * 100)
+            : 0
+          const done = progress >= 100
+          return (
+            <div
+              key={goal.id}
+              className="rounded-xl border border-slate-200/60 bg-white/80 p-4 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {GOAL_TYPE_LABELS[goal.goal_type] ?? goal.goal_type}
+                </span>
+                {done && (
+                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                    ✓ 已完成
+                  </span>
+                )}
+              </div>
+              <p className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {Math.round(goal.current_value)} / {Math.round(goal.target_value)}
+              </p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    done ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-indigo-500 dark:bg-indigo-400'
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

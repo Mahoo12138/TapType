@@ -219,3 +219,35 @@ export interface SessionDetail {
   keystroke_stats: KeystrokeStat[]
   error_items: ErrorRecord[]
 }
+
+// --- Phase 4 types ---
+
+export interface UserGoal {
+  id: string
+  user_id: string
+  goal_type: 'duration' | 'wpm' | 'accuracy' | 'practice_count'
+  target_value: number
+  current_value: number
+  period: string
+  start_date: string
+  is_active: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Achievement {
+  id: string
+  key: string
+  name: string
+  description: string
+  icon: string
+  condition: string
+  created_at: string
+  unlocked_at?: string
+  unlocked: boolean
+}
+
+export interface CompleteResult {
+  result: PracticeResult
+  new_achievements: Achievement[]
+}

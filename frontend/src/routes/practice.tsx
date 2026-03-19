@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ComponentType } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react'
 import {
   CheckCircle2,
   Clock3,
@@ -16,7 +16,8 @@ import { useSentenceBanks } from '@/api/sentenceBanks'
 import { useCompletePractice, useCreateSession, useSessions } from '@/api/practice'
 import { useTyping } from '@/hooks/useTyping'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import type { SessionWithContent } from '@/types/api'
+import { AchievementToast } from '@/components/AchievementToast'
+import type { Achievement, SessionWithContent } from '@/types/api'
 
 export const Route = createFileRoute('/practice')({
   component: Practice,
@@ -31,6 +32,8 @@ function Practice() {
   const [activeSession, setActiveSession] = useState<SessionWithContent | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [newAchievements, setNewAchievements] = useState<Achievement[]>([])
+  const dismissAchievements = useCallback(() => setNewAchievements([]), [])
 
   const { data: wordBanks = [] } = useWordBanks()
   const { data: sentenceBanks = [] } = useSentenceBanks()
@@ -149,9 +152,12 @@ function Practice() {
         error_items: getErrorItems(sourceType, textItems),
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setSubmitted(true)
           close()
+          if (data.new_achievements?.length) {
+            setNewAchievements(data.new_achievements)
+          }
         },
         onError: (err) => {
           setSubmitError(err instanceof Error ? err.message : '提交失败，请重试')
@@ -165,11 +171,13 @@ function Practice() {
     setActiveSession(null)
     setSubmitted(false)
     setSubmitError('')
+    setNewAchievements([])
     reset()
   }
 
   return (
     <div className="mx-auto max-w-7xl p-8">
+      <AchievementToast achievements={newAchievements} onDismiss={dismissAchievements} />
       <div className="mb-6">
         <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           打字练习

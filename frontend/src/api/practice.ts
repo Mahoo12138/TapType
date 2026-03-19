@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { request } from './client'
-import type { SessionWithContent, PaginatedList, SessionListItem, SessionDetail } from '@/types/api'
+import type { SessionWithContent, PaginatedList, SessionListItem, SessionDetail, CompleteResult } from '@/types/api'
 
 export function useCreateSession() {
   const qc = useQueryClient()
@@ -41,10 +41,12 @@ export function useCompletePractice() {
       keystroke_stats: { key_char: string; hit_count: number; error_count: number; avg_interval_ms: number }[]
       error_items: { content_type: string; content_id: string; error_count: number; avg_time_ms: number }[]
     }) =>
-      request(`/practice/sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+      request<CompleteResult>(`/practice/sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sessions'] })
       qc.invalidateQueries({ queryKey: ['daily'] })
+      qc.invalidateQueries({ queryKey: ['achievements'] })
+      qc.invalidateQueries({ queryKey: ['goals'] })
     },
   })
 }
