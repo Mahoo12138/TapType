@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  taptype:
+    image: taptype:latest
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - SERVER_PORT=8080
+      - DB_DRIVER=sqlite
+      - DB_DSN=/data/taptype.db
+      - JWT_SECRET=change-this-to-a-random-secret
+      - LOG_LEVEL=info
+    restart: unless-stopped
