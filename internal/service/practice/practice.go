@@ -10,8 +10,10 @@ import (
 
 	"taptype/internal/model/code"
 	"taptype/internal/model/entity"
+	achievementService "taptype/internal/service/achievement"
 	dailyService "taptype/internal/service/daily"
 	errorsService "taptype/internal/service/errors"
+	goalService "taptype/internal/service/goal"
 )
 
 // Service handles practice session lifecycle and result submission.
@@ -23,8 +25,8 @@ type Service interface {
 	// GetSession returns a single session with its result and keystroke stats.
 	GetSession(ctx context.Context, userID, sessionID string) (*SessionDetail, error)
 	// CompletePractice records a practice result, triggers SM-2 updates for errors,
-	// and updates the daily streak record.
-	CompletePractice(ctx context.Context, req CompleteRequest) (*entity.PracticeResult, error)
+	// updates the daily streak record, and detects newly unlocked achievements.
+	CompletePractice(ctx context.Context, req CompleteRequest) (*CompleteResult, error)
 }
 
 type CreateSessionRequest struct {
@@ -89,14 +91,22 @@ type ErrorItemInput struct {
 	AvgTimeMs   int64  `json:"avg_time_ms"`
 }
 
-type serviceImpl struct {
-	db        *gorm.DB
-	errorsSvc errorsService.Service
-	dailySvc  dailyService.Service
+// CompleteResult wraps the practice result with any newly unlocked achievements.
+type CompleteResult struct {
+	Result              *entity.PracticeResult `json:"result"`
+	NewAchievements     []entity.Achievement   `json:"new_achievements"`
 }
 
-func NewService(db *gorm.DB, errorsSvc errorsService.Service, dailySvc dailyService.Service) Service {
-	return &serviceImpl{db: db, errorsSvc: errorsSvc, dailySvc: dailySvc}
+type serviceImpl struct {
+	db             *gorm.DB
+	errorsSvc      errorsService.Service
+	dailySvc       dailyService.Service
+	achievementSvc achievementService.Service
+	goalSvc        goalService.Service
+}
+
+func NewService(db *gorm.DB, errorsSvc errorsService.Service, dailySvc dailyService.Service, achievementSvc achievementService.Service, goalSvc goalService.Service) Service {
+	return &serviceImpl{db: db, errorsSvc: errorsSvc, dailySvc: dailySvc, achievementSvc: achievementSvc, goalSvc: goalSvc}
 }
 
 func (s *serviceImpl) CreateSession(ctx context.Context, req CreateSessionRequest) (*SessionWithContent, error) {
@@ -225,7 +235,7 @@ func (s *serviceImpl) GetSession(ctx context.Context, userID, sessionID string) 
 	return detail, nil
 }
 
-func (s *serviceImpl) CompletePractice(ctx context.Context, req CompleteRequest) (*entity.PracticeResult, error) {
+func (s *serviceImpl) CompletePractice(ctx context.Context, req CompleteRequest) (*CompleteResult, error) {
 	// Verify session exists and belongs to user
 	var session entity.PracticeSession
 	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", req.SessionID, req.UserID).
@@ -291,14 +301,18 @@ func (s *serviceImpl) CompletePractice(ctx context.Context, req CompleteRequest)
 		return nil, gerror.NewCode(code.CodeInternalError, err.Error())
 	}
 
-	// Post-completion hooks: SM-2 updates + daily record (non-blocking for response)
-	s.postCompletionHooks(ctx, req)
+	// Post-completion hooks: SM-2 updates + daily record + achievement detection + goal refresh
+	newAchievements := s.postCompletionHooks(ctx, req)
 
-	return result, nil
+	return &CompleteResult{
+		Result:          result,
+		NewAchievements: newAchievements,
+	}, nil
 }
 
-// postCompletionHooks runs SM-2 updates and daily record updates after practice completion.
-func (s *serviceImpl) postCompletionHooks(ctx context.Context, req CompleteRequest) {
+// postCompletionHooks runs SM-2 updates, daily record updates, achievement detection,
+// and goal progress refresh after practice completion.
+func (s *serviceImpl) postCompletionHooks(ctx context.Context, req CompleteRequest) []entity.Achievement {
 	// Update error records with SM-2
 	for _, item := range req.ErrorItems {
 		_ = s.errorsSvc.UpsertErrorRecord(ctx, req.UserID, req.SessionID, item.ContentType, item.ContentID, item.ErrorCount, item.AvgTimeMs)
@@ -306,4 +320,17 @@ func (s *serviceImpl) postCompletionHooks(ctx context.Context, req CompleteReque
 
 	// Update daily record
 	_ = s.dailySvc.UpdateAfterPractice(ctx, req.UserID, req.DurationMs, req.WPM, req.Accuracy)
+
+	// Detect and unlock achievements
+	var newAchievements []entity.Achievement
+	if s.achievementSvc != nil {
+		newAchievements, _ = s.achievementSvc.DetectAndUnlock(ctx, req.UserID)
+	}
+
+	// Refresh daily goal progress
+	if s.goalSvc != nil {
+		_ = s.goalSvc.RefreshDailyProgress(ctx, req.UserID)
+	}
+
+	return newAchievements
 }

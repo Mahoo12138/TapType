@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -13,10 +14,12 @@ import (
 	"taptype/internal/controller"
 	"taptype/internal/middleware"
 	"taptype/resource"
+	achievementService "taptype/internal/service/achievement"
 	analysisService "taptype/internal/service/analysis"
 	authService "taptype/internal/service/auth"
 	dailyService "taptype/internal/service/daily"
 	errorsService "taptype/internal/service/errors"
+	goalService "taptype/internal/service/goal"
 	practiceService "taptype/internal/service/practice"
 	sentenceService "taptype/internal/service/sentence"
 	wordService "taptype/internal/service/word"
@@ -46,7 +49,9 @@ var (
 			errorsSvc := errorsService.NewService(gormDB)
 			analysisSvc := analysisService.NewService(gormDB)
 			dailySvc := dailyService.NewService(gormDB)
-			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc)
+			achievementSvc := achievementService.NewService(gormDB)
+			goalSvc := goalService.NewService(gormDB)
+			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc, achievementSvc, goalSvc)
 			wordSvc := wordService.NewService(gormDB)
 			sentenceSvc := sentenceService.NewService(gormDB)
 
@@ -59,6 +64,9 @@ var (
 			wordBankCtrl := controller.NewWordBankController(wordSvc)
 			sentenceBankCtrl := controller.NewSentenceBankController(sentenceSvc)
 			wsPracticeCtrl := controller.NewWSPracticeController()
+			goalCtrl := controller.NewGoalController(goalSvc)
+			achievementCtrl := controller.NewAchievementController(achievementSvc)
+			adminCtrl := controller.NewAdminController(gormDB)
 
 			s := g.Server()
 
@@ -75,8 +83,9 @@ var (
 			s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.CORS)
 
-				// Public auth routes (no JWT required)
+				// Public auth routes (no JWT required) — stricter rate limit
 				group.Group("/auth", func(authGroup *ghttp.RouterGroup) {
+					authGroup.Middleware(middleware.RateLimit("auth", middleware.RateLimitConfig{MaxTokens: 5, RefillRate: 1}))
 					authGroup.POST("/register", authCtrl.Register)
 					authGroup.POST("/login", authCtrl.Login)
 					authGroup.POST("/refresh", authCtrl.Refresh)
@@ -85,6 +94,7 @@ var (
 				// Protected routes (JWT required)
 				group.Group("/", func(protectedGroup *ghttp.RouterGroup) {
 					protectedGroup.Middleware(middleware.JWTAuth(jwtSecret))
+					protectedGroup.Middleware(middleware.RateLimit("general", middleware.RateLimitConfig{MaxTokens: 30, RefillRate: 10}))
 
 					protectedGroup.GET("/auth/me", authCtrl.Me)
 
@@ -132,6 +142,24 @@ var (
 
 					// Daily record
 					protectedGroup.GET("/daily", dailyCtrl.GetToday)
+
+					// Goals CRUD
+					protectedGroup.GET("/goals", goalCtrl.ListGoals)
+					protectedGroup.POST("/goals", goalCtrl.CreateGoal)
+					protectedGroup.PUT("/goals/{id}", goalCtrl.UpdateGoal)
+					protectedGroup.DELETE("/goals/{id}", goalCtrl.DeleteGoal)
+
+					// Achievements
+					protectedGroup.GET("/achievements", achievementCtrl.ListAchievements)
+
+					// Admin routes (requires admin role)
+					protectedGroup.Group("/admin", func(adminGroup *ghttp.RouterGroup) {
+						adminGroup.Middleware(middleware.AdminOnly)
+						adminGroup.GET("/users", adminCtrl.ListUsers)
+						adminGroup.PUT("/users/{id}", adminCtrl.UpdateUser)
+						adminGroup.GET("/word-banks", adminCtrl.ListPublicWordBanks)
+						adminGroup.GET("/sentence-banks", adminCtrl.ListPublicSentenceBanks)
+					})
 				})
 			})
 
@@ -158,6 +186,15 @@ var (
 				r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 				r.Response.Write(indexHTML)
 			})
+
+			// Start periodic rate limiter cleanup
+			go func() {
+				ticker := time.NewTicker(10 * time.Minute)
+				defer ticker.Stop()
+				for range ticker.C {
+					middleware.CleanupExpiredBuckets()
+				}
+			}()
 
 			s.Run()
 			return nil
