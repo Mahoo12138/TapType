@@ -12,11 +12,32 @@ import (
 )
 
 func (c *ControllerV1Public) Register(ctx context.Context, req *v1.RegisterReq) (res *v1.RegisterRes, err error) {
+	needSetup, err := c.authSvc.NeedInitialAdminSetup(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if needSetup {
+		return nil, gerror.NewCode(code.CodeForbidden, "please register initial admin first")
+	}
+
 	user, err := c.authSvc.Register(ctx, req.Username, req.Email, req.Password)
 	if err != nil {
 		return nil, err
 	}
 	return &v1.RegisterRes{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     user.Role,
+	}, nil
+}
+
+func (c *ControllerV1Public) RegisterInitialAdmin(ctx context.Context, req *v1.RegisterInitialAdminReq) (res *v1.RegisterInitialAdminRes, err error) {
+	user, err := c.authSvc.RegisterInitialAdmin(ctx, req.Username, req.Email, req.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.RegisterInitialAdminRes{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,

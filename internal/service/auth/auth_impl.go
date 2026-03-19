@@ -3,12 +3,14 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"taptype/internal/model/code"
 	"taptype/internal/model/entity"
@@ -32,15 +34,99 @@ func NewService(db *gorm.DB, jwtSecret string) Service {
 }
 
 func (s *serviceImpl) Register(ctx context.Context, username, email, password string) (*entity.User, error) {
+	return s.registerWithRole(ctx, username, email, password, "user")
+}
+
+func (s *serviceImpl) RegisterInitialAdmin(ctx context.Context, username, email, password string) (*entity.User, error) {
+	var user *entity.User
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		needSetup, err := s.needInitialAdminSetupTx(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if !needSetup {
+			return gerror.NewCode(code.CodeForbidden, "initial admin already exists")
+		}
+
+		hash, err := crypto.HashPassword(password)
+		if err != nil {
+			return gerror.NewCode(code.CodeInternalError)
+		}
+
+		u := &entity.User{
+			ID:           uuid.New().String(),
+			Username:     username,
+			Email:        email,
+			PasswordHash: hash,
+			Role:         "admin",
+			IsActive:     1,
+		}
+		if err = tx.Create(u).Error; err != nil {
+			return gerror.NewCode(code.CodeInternalError)
+		}
+
+		now := time.Now()
+		owner := entity.SystemSetting{
+			ID:            uuid.New().String(),
+			DefinitionKey: "system.owner_user_id",
+			Value:         u.ID,
+			UpdatedBy:     u.ID,
+			UpdatedAt:     now,
+		}
+		if err = tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "definition_key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"value", "updated_by", "updated_at"}),
+		}).Create(&owner).Error; err != nil {
+			return gerror.NewCode(code.CodeInternalError)
+		}
+		user = u
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *serviceImpl) NeedInitialAdminSetup(ctx context.Context) (bool, error) {
+	return s.needInitialAdminSetupTx(ctx, s.db.WithContext(ctx))
+}
+
+func (s *serviceImpl) needInitialAdminSetupTx(ctx context.Context, tx *gorm.DB) (bool, error) {
+	var owner entity.SystemSetting
+	err := tx.Where("definition_key = ?", "system.owner_user_id").First(&owner).Error
+	if err == nil {
+		if strings.TrimSpace(owner.Value) != "" {
+			return false, nil
+		}
+		var userCount int64
+		if err = tx.Model(&entity.User{}).Count(&userCount).Error; err != nil {
+			return false, gerror.NewCode(code.CodeInternalError)
+		}
+		return userCount == 0, nil
+	}
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return false, gerror.NewCode(code.CodeInternalError)
+	}
+
+	// Backward compatibility: for old databases without owner setting value yet.
+	var userCount int64
+	if err = tx.Model(&entity.User{}).Count(&userCount).Error; err != nil {
+		return false, gerror.NewCode(code.CodeInternalError)
+	}
+	return userCount == 0, nil
+}
+
+func (s *serviceImpl) registerWithRole(ctx context.Context, username, email, password, role string) (*entity.User, error) {
 	// Check username uniqueness
 	var count int64
-	s.db.Model(&entity.User{}).Where("username = ?", username).Count(&count)
+	s.db.WithContext(ctx).Model(&entity.User{}).Where("username = ?", username).Count(&count)
 	if count > 0 {
 		return nil, gerror.NewCode(code.CodeUsernameTaken)
 	}
 
 	// Check email uniqueness
-	s.db.Model(&entity.User{}).Where("email = ?", email).Count(&count)
+	s.db.WithContext(ctx).Model(&entity.User{}).Where("email = ?", email).Count(&count)
 	if count > 0 {
 		return nil, gerror.NewCode(code.CodeEmailTaken)
 	}
@@ -60,11 +146,11 @@ func (s *serviceImpl) Register(ctx context.Context, username, email, password st
 		Username:     username,
 		Email:        email,
 		PasswordHash: hash,
-		Role:         "user",
+		Role:         role,
 		IsActive:     1,
 	}
 
-	if err := s.db.Create(user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Create(user).Error; err != nil {
 		return nil, gerror.NewCode(code.CodeInternalError)
 	}
 

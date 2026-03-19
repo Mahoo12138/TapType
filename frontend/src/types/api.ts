@@ -251,3 +251,44 @@ export interface CompleteResult {
   result: PracticeResult
   new_achievements: Achievement[]
 }
+
+// --- Settings types ---
+
+export interface SettingDefinitionItem {
+  key: string
+  type: 'bool' | 'string' | 'int' | 'float' | 'enum' | 'json'
+  label: string
+  description?: string
+  default_value: string
+  current_value: string
+  enum_options?: string[]
+  is_editable: boolean
+}
+
+export interface SettingDefinitionGroup {
+  key: string
+  items: SettingDefinitionItem[]
+}
+
+export interface SettingDefinitionsResponse {
+  groups: SettingDefinitionGroup[]
+}
+
+export interface SystemSettingItem {
+  key: string
+  type: string
+  group_key: string
+  label: string
+  description: string
+  default_value: string
+  current_value: string
+  enum_options?: string[]
+  validation_rule?: string
+}
+
+export interface UserControlItem {
+  key: string
+  label: string
+  is_visible: boolean
+  is_editable: boolean
+}

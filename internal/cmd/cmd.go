@@ -90,7 +90,10 @@ var (
 				// Public auth routes (no JWT required) — stricter rate limit
 				group.Group("/", func(publicGroup *ghttp.RouterGroup) {
 					publicGroup.Middleware(middleware.RateLimit("auth", middleware.RateLimitConfig{MaxTokens: 5, RefillRate: 1}))
-					publicGroup.Bind(authCtrl.NewV1Public(authSvc))
+					publicGroup.Bind(
+						authCtrl.NewV1Public(authSvc),
+						settingsCtrl.NewPublicV1(settingsSvc),
+					)
 				})
 
 				// Protected routes (JWT required)

@@ -3,12 +3,51 @@ package settings
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "taptype/api/settings/v1"
 	"taptype/internal/model/entity"
 )
+
+func (c *PublicControllerV1) GetPublicSystemSettings(ctx context.Context, req *v1.GetPublicSystemSettingsReq) (res *v1.GetPublicSystemSettingsRes, err error) {
+	r := g.RequestFromCtx(ctx)
+
+	defs, err := c.settingsSvc.GetDefinitions(ctx, "system", true)
+	if err != nil {
+		return nil, err
+	}
+	values, err := c.settingsSvc.GetAllSystemSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	allowed := make(map[string]struct{}, len(defs))
+	for _, d := range defs {
+		allowed[d.Key] = struct{}{}
+	}
+
+	result := map[string]string{}
+	if strings.TrimSpace(req.Keys) == "" {
+		for key := range allowed {
+			result[key] = values[key]
+		}
+	} else {
+		for _, key := range strings.Split(req.Keys, ",") {
+			k := strings.TrimSpace(key)
+			if k == "" {
+				continue
+			}
+			if _, ok := allowed[k]; ok {
+				result[k] = values[k]
+			}
+		}
+	}
+
+	r.Response.WriteJsonExit(g.Map{"code": 0, "message": "success", "data": result})
+	return
+}
 
 // ---- User settings controller ----
 
