@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useLogin } from '@/api/auth'
 import { useAuthStore } from '@/stores/authStore'
+import { Keyboard } from 'lucide-react'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -16,7 +17,6 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Redirect if already logged in
   if (user) {
     navigate({ to: '/' })
     return null
@@ -38,29 +38,28 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <span className="text-4xl">⌨️</span>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900">TapType</h1>
-          <p className="mt-1 text-gray-600">登录你的账户</p>
+          <Keyboard className="mx-auto h-10 w-10 text-indigo-600 dark:text-indigo-400" strokeWidth={1.5} />
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            TapType
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">登录你的账户</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+          className="rounded-xl border border-slate-200/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
         >
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
               {error}
             </div>
           )}
 
           <div className="mb-4">
-            <label
-              htmlFor="username"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               用户名
             </label>
             <input
@@ -68,17 +67,14 @@ function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
               placeholder="输入用户名或邮箱"
               required
             />
           </div>
 
           <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               密码
             </label>
             <input
@@ -86,7 +82,7 @@ function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
               placeholder="输入密码"
               required
             />
@@ -95,17 +91,17 @@ function LoginPage() {
           <button
             type="submit"
             disabled={login.isPending}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             {login.isPending ? '登录中...' : '登录'}
           </button>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
             没有账户？{' '}
             <button
               type="button"
               onClick={() => navigate({ to: '/register' })}
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
               立即注册
             </button>

@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as LibraryRouteImport } from './routes/library'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as ErrorsRouteImport } from './routes/errors'
+import { Route as ContentRouteImport } from './routes/content'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -31,9 +33,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErrorsRoute = ErrorsRouteImport.update({
+  id: '/errors',
+  path: '/errors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentRoute = ContentRouteImport.update({
+  id: '/content',
+  path: '/content',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalysisRoute = AnalysisRouteImport.update({
@@ -50,7 +62,9 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
-  '/library': typeof LibraryRoute
+  '/content': typeof ContentRoute
+  '/errors': typeof ErrorsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
@@ -58,7 +72,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
-  '/library': typeof LibraryRoute
+  '/content': typeof ContentRoute
+  '/errors': typeof ErrorsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
@@ -67,7 +83,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
-  '/library': typeof LibraryRoute
+  '/content': typeof ContentRoute
+  '/errors': typeof ErrorsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
@@ -77,17 +95,29 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analysis'
-    | '/library'
+    | '/content'
+    | '/errors'
+    | '/history'
     | '/login'
     | '/practice'
     | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analysis' | '/library' | '/login' | '/practice' | '/register'
+  to:
+    | '/'
+    | '/analysis'
+    | '/content'
+    | '/errors'
+    | '/history'
+    | '/login'
+    | '/practice'
+    | '/register'
   id:
     | '__root__'
     | '/'
     | '/analysis'
-    | '/library'
+    | '/content'
+    | '/errors'
+    | '/history'
     | '/login'
     | '/practice'
     | '/register'
@@ -96,7 +126,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalysisRoute: typeof AnalysisRoute
-  LibraryRoute: typeof LibraryRoute
+  ContentRoute: typeof ContentRoute
+  ErrorsRoute: typeof ErrorsRoute
+  HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   RegisterRoute: typeof RegisterRoute
@@ -125,11 +157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/errors': {
+      id: '/errors'
+      path: '/errors'
+      fullPath: '/errors'
+      preLoaderRoute: typeof ErrorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content': {
+      id: '/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analysis': {
@@ -152,7 +198,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalysisRoute: AnalysisRoute,
-  LibraryRoute: LibraryRoute,
+  ContentRoute: ContentRoute,
+  ErrorsRoute: ErrorsRoute,
+  HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   RegisterRoute: RegisterRoute,

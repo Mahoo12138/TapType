@@ -4,8 +4,11 @@ import type { ApiResponse } from '@/types/api'
 const BASE_URL = '/api/v1'
 
 export class ApiError extends Error {
-  constructor(public code: number, message: string) {
+  code: number
+
+  constructor(code: number, message: string) {
     super(message)
+    this.code = code
     this.name = 'ApiError'
   }
 }
