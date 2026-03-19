@@ -14,6 +14,16 @@ interface LoginParams {
   password: string
 }
 
+export function useRegisterInitialAdmin() {
+  return useMutation({
+    mutationFn: (params: RegisterParams) =>
+      request<RegisterData>('/auth/register-initial-admin', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+  })
+}
+
 export function useRegister() {
   return useMutation({
     mutationFn: (params: RegisterParams) =>

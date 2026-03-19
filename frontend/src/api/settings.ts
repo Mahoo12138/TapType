@@ -3,6 +3,15 @@ import { request } from './client'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { SettingDefinitionsResponse, SystemSettingItem, UserControlItem } from '@/types/api'
 
+export function usePublicSystemSettings(keys: string[]) {
+  const q = keys.join(',')
+  return useQuery({
+    queryKey: ['settings', 'public-system', q],
+    queryFn: () => request<Record<string, string>>(`/settings/public/system?keys=${encodeURIComponent(q)}`),
+    staleTime: 60 * 1000,
+  })
+}
+
 // ---- User settings ----
 
 export function useUserSettings() {
