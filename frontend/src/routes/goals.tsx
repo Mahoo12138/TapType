@@ -3,6 +3,18 @@ import { useState } from 'react'
 import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from '@/api/goals'
 import { Target, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import type { UserGoal } from '@/types/api'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 export const Route = createFileRoute('/goals')({
   component: GoalsPage,
@@ -37,13 +49,12 @@ function GoalsPage() {
             设定每日练习目标，保持持续进步
           </p>
         </div>
-        <button
+        <Button
           onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
         >
           <Plus className="h-4 w-4" />
           添加目标
-        </button>
+        </Button>
       </div>
 
       {showForm && <CreateGoalForm onClose={() => setShowForm(false)} />}
@@ -79,55 +90,57 @@ function CreateGoalForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 rounded-xl border border-slate-200/60 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
-    >
-      <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">新建目标</h3>
+    <Card className="mb-6">
+      <CardHeader className="pb-2">
+        <CardTitle>新建目标</CardTitle>
+      </CardHeader>
+      <CardContent>
+      <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="space-y-1 text-sm">
           <span className="text-slate-500 dark:text-slate-400">目标类型</span>
-          <select
-            value={goalType}
-            onChange={(e) => setGoalType(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          >
-            {Object.entries(GOAL_TYPE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
+          <Select value={goalType} onValueChange={(v) => setGoalType(v)}>
+            <SelectTrigger className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(GOAL_TYPE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
         <label className="space-y-1 text-sm">
           <span className="text-slate-500 dark:text-slate-400">目标值</span>
-          <input
+          <Input
             type="number"
             min={1}
             step="any"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
             placeholder={`输入目标 ${GOAL_TYPE_UNITS[goalType]}`}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             required
           />
         </label>
         <div className="flex items-end gap-2">
-          <button
+          <Button
             type="submit"
             disabled={createGoal.isPending}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             {createGoal.isPending ? '创建中...' : '创建'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            variant="outline"
           >
             取消
-          </button>
+          </Button>
         </div>
       </div>
-    </form>
+      </form>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -142,11 +155,12 @@ function GoalCard({ goal }: { goal: UserGoal }) {
   const isActive = goal.is_active === 1
 
   return (
-    <div className={`rounded-xl border p-5 transition-shadow hover:shadow-md ${
+    <Card className={`p-5 transition-shadow hover:shadow-md ${
       isActive
         ? 'border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80'
         : 'border-slate-200/40 bg-slate-50/60 opacity-60 dark:border-slate-800/40 dark:bg-slate-950/60'
     }`}>
+      <CardContent className="p-0">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Target className={`h-4 w-4 ${isComplete ? 'text-emerald-500' : 'text-indigo-500 dark:text-indigo-400'}`} strokeWidth={1.8} />
@@ -154,26 +168,26 @@ function GoalCard({ goal }: { goal: UserGoal }) {
             {GOAL_TYPE_LABELS[goal.goal_type] ?? goal.goal_type}
           </span>
           {!isActive && (
-            <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-400">
-              已暂停
-            </span>
+            <Badge variant="secondary">已暂停</Badge>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <Button
             onClick={() => updateGoal.mutate({ id: goal.id, is_active: isActive ? 0 : 1 })}
-            className="rounded p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            variant="ghost"
+            size="icon"
             title={isActive ? '暂停目标' : '恢复目标'}
           >
             {isActive ? <ToggleRight className="h-5 w-5 text-indigo-500" /> : <ToggleLeft className="h-5 w-5" />}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => deleteGoal.mutate(goal.id)}
-            className="rounded p-1 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400"
+            variant="ghost"
+            size="icon"
             title="删除目标"
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -186,20 +200,12 @@ function GoalCard({ goal }: { goal: UserGoal }) {
         </span>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            isComplete
-              ? 'bg-emerald-500 dark:bg-emerald-400'
-              : 'bg-indigo-500 dark:bg-indigo-400'
-          }`}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <Progress value={progress} className={isComplete ? '[&>div]:bg-emerald-500' : ''} />
       <p className="mt-1.5 text-right text-xs text-slate-500 dark:text-slate-400">
         {progress.toFixed(0)}%
       </p>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 

@@ -9,6 +9,9 @@ import {
   Zap,
   Inbox,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/errors')({
   component: ErrorsPage,
@@ -49,14 +52,13 @@ function ErrorsPage() {
           </p>
         </div>
         {reviewCount > 0 && (
-          <button
+          <Button
             onClick={handleReview}
             disabled={createSession.isPending}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             <Zap className="h-4 w-4" />
             一键强化（{reviewCount}）
-          </button>
+          </Button>
         )}
       </div>
 
@@ -77,7 +79,8 @@ function ErrorsPage() {
         <EmptyState />
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200/60 bg-slate-50/80 dark:border-slate-800/60 dark:bg-slate-900/80">
@@ -98,9 +101,9 @@ function ErrorsPage() {
                       {err.content || err.content_id}
                     </td>
                     <td className="px-5 py-3">
-                      <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                      <Badge variant="secondary">
                         {err.content_type === 'word' ? '单词' : '句子'}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-5 py-3 text-slate-700 dark:text-slate-300">
                       {err.error_count}
@@ -115,7 +118,8 @@ function ErrorsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -124,20 +128,22 @@ function ErrorsPage() {
                 共 {errors.total} 条，第 {page}/{totalPages} 页
               </p>
               <div className="flex gap-1">
-                <button
+                <Button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                  variant="outline"
+                  size="icon"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                  variant="outline"
+                  size="icon"
                 >
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             </div>
           )}

@@ -3,12 +3,14 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useThemeStore } from '@/stores/themeStore'
 import { request } from '@/api/client'
+import { useUpdateProfile } from '@/api/auth'
 import {
   useBatchSaveSettings,
   useSaveSystemSetting,
   useSaveUserControl,
   useSettingDefinitions,
   useSystemSettings,
+  usePublicSystemSettings,
   useUserControls,
   useUserSettings,
 } from '@/api/settings'
@@ -25,82 +27,162 @@ import {
   KeyRound,
   Shield,
   Check,
+  Pencil,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
 })
+type SettingsGroup = {
+  key: string
+  label: string
+  description: string
+  icon: LucideIcon
+  adminOnly?: boolean
+}
 
 function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const [activeGroup, setActiveGroup] = useState('my-account')
 
-  const groups = [
-    { key: 'my-account', label: '我的账号', icon: User },
-    { key: 'preferences', label: '偏好设置', icon: SlidersHorizontal },
+  const groups: SettingsGroup[] = [
+    { key: 'my-account', label: '我的账号', description: '资料、密码与令牌', icon: User },
+    { key: 'preferences', label: '偏好设置', description: '界面与练习习惯', icon: SlidersHorizontal },
     ...(user?.role === 'admin'
       ? [
-          { key: 'system-management', label: '系统管理', icon: Server },
-          { key: 'user-management', label: '用户管理', icon: Users },
+          {
+            key: 'system-management',
+            label: '系统管理',
+            description: '系统级参数与开关',
+            icon: Server,
+            adminOnly: true,
+          },
+          {
+            key: 'user-management',
+            label: '用户管理',
+            description: '配置项权限控制',
+            icon: Users,
+            adminOnly: true,
+          },
         ]
       : []),
   ]
 
+  const currentGroup = groups.find((g) => g.key === activeGroup)
+
   return (
-    <div className="mx-auto max-w-7xl p-8">
-      <div className="mb-6">
-        <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          设置
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          管理你的账户和偏好设置
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px,1fr]">
-        <aside className="rounded-xl border border-slate-200/60 bg-white/80 p-2 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-          <nav className="space-y-1">
-            {groups.map((g) => {
-              const Icon = g.icon
-              const active = activeGroup === g.key
-              return (
-                <button
-                  key={g.key}
-                  onClick={() => setActiveGroup(g.key)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" strokeWidth={1.8} />
-                  <span>{g.label}</span>
-                </button>
-              )
-            })}
-          </nav>
-        </aside>
-
-        <div className="space-y-6">
-          {activeGroup === 'my-account' && (
-            <>
-              <ProfileSection user={user} />
-              <ApiTokenSection />
-              <PasswordSection />
-            </>
+    <div className="mx-auto max-w-6xl p-4 md:p-8">
+      <Card className="border-border/70 bg-gradient-to-br from-card via-card/95 to-secondary/30 p-5 md:p-6">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">设置中心</h1>
+            <p className="mt-1 text-sm text-muted-foreground">统一管理账户、偏好与系统配置</p>
+          </div>
+          {user?.role === 'admin' && (
+            <Badge variant="secondary" className="rounded-full">
+              管理员模式
+            </Badge>
           )}
-
-          {activeGroup === 'preferences' && <PreferenceSection />}
-
-          {activeGroup === 'system-management' && user?.role === 'admin' && <SystemManagementSection />}
-
-          {activeGroup === 'user-management' && user?.role === 'admin' && <UserManagementSection />}
         </div>
+
+        <SettingsTabBar groups={groups} activeGroup={activeGroup} onChange={setActiveGroup} />
+      </Card>
+
+      <div className="mt-6 space-y-6">
+        {currentGroup && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <currentGroup.icon className="h-4 w-4" strokeWidth={1.8} />
+            <span>{currentGroup.description}</span>
+          </div>
+        )}
+
+        {activeGroup === 'my-account' && (
+          <>
+            <ProfileSection user={user} />
+            <ApiTokenSection />
+            <PasswordSection />
+          </>
+        )}
+
+        {activeGroup === 'preferences' && <PreferenceSection />}
+
+        {activeGroup === 'system-management' && user?.role === 'admin' && <SystemManagementSection />}
+
+        {activeGroup === 'user-management' && user?.role === 'admin' && <UserManagementSection />}
       </div>
     </div>
   )
 }
 
+function SettingsTabBar({
+  groups,
+  activeGroup,
+  onChange,
+}: {
+  groups: SettingsGroup[]
+  activeGroup: string
+  onChange: (key: string) => void
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-background/70 p-2 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]">
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {groups.map((g) => {
+          const Icon = g.icon
+          const active = activeGroup === g.key
+
+          return (
+            <Button
+              key={g.key}
+              type="button"
+              variant="ghost"
+              onClick={() => onChange(g.key)}
+              className={cn(
+                'h-auto min-w-[180px] shrink-0 rounded-lg border px-3 py-2.5 text-left transition-all',
+                active
+                  ? 'border-primary/40 bg-primary/10 text-foreground shadow-sm'
+                  : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-secondary/50 hover:text-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4" strokeWidth={1.8} />
+                <span className="text-sm font-medium">{g.label}</span>
+                {g.adminOnly && (
+                  <Badge variant="outline" className="ml-auto h-5 rounded-full px-2 text-[10px]">
+                    ADMIN
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">{g.description}</p>
+            </Button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 function PreferenceSection() {
   const { data: definitionsData } = useSettingDefinitions()
   useUserSettings()
@@ -138,13 +220,12 @@ function PreferenceSection() {
             />
           ))}
           <div className="flex justify-end">
-            <button
+            <Button
               onClick={handleSave}
               disabled={saveBatch.isPending || Object.keys(draft).length === 0}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
             >
               {saveBatch.isPending ? '保存中...' : '保存偏好设置'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -211,16 +292,13 @@ function SettingField({
           )}
         </div>
         {!item.is_editable && (
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            已锁定
-          </span>
+          <Badge variant="secondary">已锁定</Badge>
         )}
       </div>
 
       {item.type === 'bool' ? (
         <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={value === 'true'}
             disabled={disabled}
             onChange={(e) => onChange(String(e.target.checked))}
@@ -228,33 +306,31 @@ function SettingField({
           启用
         </label>
       ) : item.type === 'enum' ? (
-        <select
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-        >
-          {(item.enum_options ?? []).map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+        <Select value={value} disabled={disabled} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(item.enum_options ?? []).map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : item.type === 'int' ? (
-        <input
+        <Input
           type="number"
           value={Number(value || '0')}
           disabled={disabled}
           onChange={(e) => onChange(String(e.target.value))}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       ) : (
-        <input
+        <Input
           type="text"
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       )}
     </div>
@@ -287,14 +363,16 @@ function ApiTokenSection() {
         <code className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
           {maskedToken}
         </code>
-        <button
+        <Button
           onClick={copyToken}
           disabled={!tokenText}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          variant="outline"
+          size="sm"
+          className="gap-1"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <KeyRound className="h-3.5 w-3.5" />}
           {copied ? '已复制' : '复制 Token'}
-        </button>
+        </Button>
       </div>
       <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">后续会支持多 Token 管理、过期时间和权限范围配置。</p>
     </section>
@@ -345,7 +423,7 @@ function SystemManagementSection() {
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <input
+                        <Input
                           type="text"
                           value={current}
                           onChange={(e) =>
@@ -354,15 +432,15 @@ function SystemManagementSection() {
                               [item.key]: e.target.value,
                             }))
                           }
-                          className="min-w-[260px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                          className="min-w-[260px] flex-1"
                         />
-                        <button
+                        <Button
                           onClick={() => saveOne(item.key)}
                           disabled={saveSystem.isPending || draft[item.key] === undefined}
-                          className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                          size="sm"
                         >
                           保存
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )
@@ -409,8 +487,7 @@ function UserManagementSection() {
             </div>
 
             <label className="inline-flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={item.is_visible}
                 onChange={(e) => handleToggle(item, { is_visible: e.target.checked })}
               />
@@ -418,8 +495,7 @@ function UserManagementSection() {
             </label>
 
             <label className="inline-flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={item.is_editable}
                 onChange={(e) => handleToggle(item, { is_editable: e.target.checked })}
               />
@@ -437,15 +513,144 @@ function UserManagementSection() {
 }
 
 function ProfileSection({ user }: { user: { username: string; email: string; role: string } | null }) {
+  const updateProfile = useUpdateProfile()
+  const { data: publicSystem = {} } = usePublicSystemSettings(['system.allow_username_change'])
+  const [open, setOpen] = useState(false)
+  const [username, setUsername] = useState(user?.username ?? '')
+  const [email, setEmail] = useState(user?.email ?? '')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const allowUsernameChange =
+    user?.role === 'admin' ||
+    (publicSystem['system.allow_username_change'] ?? 'true').trim().toLowerCase() !== 'false'
+
+  const dirty = username !== (user?.username ?? '') || email !== (user?.email ?? '')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setMessage('')
+    setError('')
+
+    updateProfile.mutate(
+      { username, email },
+      {
+        onSuccess: () => {
+          setMessage('账户资料已更新')
+          setOpen(false)
+        },
+        onError: (err) => {
+          setError(err.message || '更新失败')
+        },
+      },
+    )
+  }
+
+  const reset = () => {
+    setUsername(user?.username ?? '')
+    setEmail(user?.email ?? '')
+    setMessage('')
+    setError('')
+  }
+
+  const openEditor = () => {
+    if (!user) return
+    reset()
+    setOpen(true)
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      reset()
+    }
+    setOpen(nextOpen)
+  }
+
   if (!user) return null
 
   return (
     <section className="rounded-xl border border-slate-200/60 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-        <User className="h-4 w-4" strokeWidth={1.8} />
-        账户信息
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <User className="h-4 w-4" strokeWidth={1.8} />
+          账户信息
+        </div>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogTrigger asChild>
+            <Button type="button" variant="outline" size="sm" onClick={openEditor}>
+              <Pencil className="h-4 w-4" />
+              编辑资料
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>编辑账户资料</DialogTitle>
+              <DialogDescription>修改用户名与邮箱后保存即可生效。</DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+              {error && (
+                <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
+                  {error}
+                </p>
+              )}
+
+              <label className="block space-y-1 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">用户名</span>
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={!allowUsernameChange || updateProfile.isPending}
+                  minLength={3}
+                  maxLength={20}
+                  pattern="^[a-zA-Z0-9_]+$"
+                  required
+                />
+                {!allowUsernameChange && user.role !== 'admin' && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    管理员已禁止普通用户修改用户名
+                  </span>
+                )}
+              </label>
+
+              <label className="block space-y-1 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">邮箱</span>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={reset}
+                  disabled={!dirty || updateProfile.isPending}
+                >
+                  重置
+                </Button>
+                <Button type="submit" disabled={!dirty || updateProfile.isPending}>
+                  {updateProfile.isPending ? '保存中...' : '保存资料'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+      {message && (
+        <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+          {message}
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-slate-500 dark:text-slate-400">用户名</p>
           <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.username}</p>
@@ -513,13 +718,16 @@ function PasswordSection() {
           <p className="text-sm font-medium text-slate-900 dark:text-slate-100">主题模式</p>
           <p>{dark ? '当前使用深色模式' : '当前使用浅色模式'}</p>
         </div>
-        <button
+        <Button
           onClick={toggleTheme}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {dark ? '切换为浅色' : '切换为深色'}
-        </button>
+        </Button>
       </div>
 
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -539,43 +747,39 @@ function PasswordSection() {
         )}
         <label className="block space-y-1 text-sm">
           <span className="text-slate-500 dark:text-slate-400">当前密码</span>
-          <input
+          <Input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             required
           />
         </label>
         <label className="block space-y-1 text-sm">
           <span className="text-slate-500 dark:text-slate-400">新密码</span>
-          <input
+          <Input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             required
             minLength={8}
           />
         </label>
         <label className="block space-y-1 text-sm">
           <span className="text-slate-500 dark:text-slate-400">确认新密码</span>
-          <input
+          <Input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             required
             minLength={8}
           />
         </label>
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
         >
           {loading ? '修改中...' : '修改密码'}
-        </button>
+        </Button>
       </form>
     </section>
   )

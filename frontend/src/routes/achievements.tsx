@@ -3,6 +3,8 @@ import { useAchievements } from '@/api/achievements'
 import { Trophy, Lock, Award, Flame, Zap, Target, Rocket, BookOpen } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Achievement } from '@/types/api'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/achievements')({
   component: AchievementsPage,
@@ -31,9 +33,7 @@ function AchievementsPage() {
         <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           成就
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {unlocked.length} / {achievements.length} 已解锁
-        </p>
+        <Badge variant="secondary">{unlocked.length} / {achievements.length} 已解锁</Badge>
       </div>
 
       {isLoading ? (
@@ -83,13 +83,14 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
   const isUnlocked = achievement.unlocked
 
   return (
-    <div
-      className={`relative rounded-xl border p-5 transition-shadow ${
+    <Card
+      className={`relative p-5 transition-shadow ${
         isUnlocked
           ? 'border-amber-200/60 bg-gradient-to-br from-amber-50/80 to-orange-50/60 shadow-sm hover:shadow-md dark:border-amber-900/40 dark:from-amber-950/30 dark:to-orange-950/20'
           : 'border-slate-200/60 bg-white/60 dark:border-slate-800/60 dark:bg-slate-900/60'
       }`}
     >
+      <CardContent className="p-0">
       <div className="mb-3 flex items-start justify-between">
         <div
           className={`rounded-xl p-2.5 ${
@@ -127,6 +128,7 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
           {new Date(achievement.unlocked_at).toLocaleDateString('zh-CN')} 解锁
         </p>
       )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }

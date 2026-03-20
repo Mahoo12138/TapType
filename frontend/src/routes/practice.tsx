@@ -17,6 +17,17 @@ import { useCompletePractice, useCreateSession, useSessions } from '@/api/practi
 import { useTyping } from '@/hooks/useTyping'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { AchievementToast } from '@/components/AchievementToast'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import type { Achievement, SessionWithContent } from '@/types/api'
 
 export const Route = createFileRoute('/practice')({
@@ -188,82 +199,91 @@ function Practice() {
       </div>
 
       {!activeSession && (
-        <section className="mb-6 rounded-xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">练习配置</h2>
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle>练习配置</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <label className="space-y-1 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">模式</span>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value="normal">普通打字</option>
-                <option value="recitation">背词模式</option>
-                <option value="dictation">默写模式</option>
-              </select>
+              <span className="text-muted-foreground">模式</span>
+              <Select value={mode} onValueChange={(v) => setMode(v)}>
+                <SelectTrigger className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">普通打字</SelectItem>
+                  <SelectItem value="recitation">背词模式</SelectItem>
+                  <SelectItem value="dictation">默写模式</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">内容类型</span>
-              <select
+              <span className="text-muted-foreground">内容类型</span>
+              <Select
                 value={sourceType}
-                onChange={(e) => {
-                  const next = e.target.value as 'word_bank' | 'sentence_bank'
+                onValueChange={(v) => {
+                  const next = v as 'word_bank' | 'sentence_bank'
                   setSourceType(next)
                   setSourceId('')
                 }}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
-                <option value="word_bank">词库</option>
-                <option value="sentence_bank">句库</option>
-              </select>
+                <SelectTrigger className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="word_bank">词库</SelectItem>
+                  <SelectItem value="sentence_bank">句库</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">选择内容库</span>
-              <select
-                value={sourceId}
-                onChange={(e) => setSourceId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value="">请选择</option>
-                {sourceType === 'word_bank'
-                  ? wordBanks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.word_count})
-                      </option>
-                    ))
-                  : sentenceBanks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.sentence_count})
-                      </option>
-                    ))}
-              </select>
+              <span className="text-muted-foreground">选择内容库</span>
+              <Select value={sourceId || '__none'} onValueChange={(v) => setSourceId(v === '__none' ? '' : v)}>
+                <SelectTrigger className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">请选择</SelectItem>
+                  {sourceType === 'word_bank'
+                    ? wordBanks.map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>
+                          {b.name} ({b.word_count})
+                        </SelectItem>
+                      ))
+                    : sentenceBanks.map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>
+                          {b.name} ({b.sentence_count})
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">条目数量</span>
-              <input
+              <span className="text-muted-foreground">条目数量</span>
+              <Input
                 type="number"
                 min={1}
                 max={200}
                 value={itemCount}
                 onChange={(e) => setItemCount(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </label>
           </div>
 
-          <button
+          <Button
             onClick={startPractice}
             disabled={!sourceId || createSession.isPending}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+            className="mt-4"
           >
             <Play className="h-4 w-4" />
             {createSession.isPending ? '创建中...' : '开始练习'}
-          </button>
-        </section>
+          </Button>
+          </CardContent>
+        </Card>
       )}
 
       {activeSession && (
@@ -277,36 +297,37 @@ function Practice() {
             elapsed={displayStats.elapsed}
           />
 
-          <div className="rounded-xl border border-slate-200/70 bg-white/90 p-6 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/90">
+          <Card>
+            <CardContent className="p-6">
             <CharDisplay charStates={charStates} />
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="flex flex-wrap gap-2">
             {!submitted ? (
-              <button
+              <Button
                 onClick={submitPractice}
                 disabled={!isFinished || completePractice.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                variant="secondary"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 {completePractice.isPending ? '提交中...' : '提交结果'}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 onClick={resetPractice}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 <RotateCcw className="h-4 w-4" />
                 再来一轮
-              </button>
+              </Button>
             )}
             {!submitted && (
-              <button
+              <Button
                 onClick={resetPractice}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                variant="outline"
               >
                 退出练习
-              </button>
+              </Button>
             )}
           </div>
 
@@ -327,27 +348,31 @@ function Practice() {
         </section>
       )}
 
-      <section className="mt-6 rounded-xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">最近练习</h2>
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle>最近练习</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-2">
           {recentSessions?.list.map((session) => (
             <div
               key={session.id}
-              className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white/70 px-3 py-2 text-sm dark:border-slate-800/60 dark:bg-slate-900/70"
+              className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
             >
-              <span className="text-slate-700 dark:text-slate-300">
+              <span className="text-foreground">
                 {session.mode} · {session.source_type}
               </span>
-              <span className="text-slate-500 dark:text-slate-400">
+              <span className="text-muted-foreground">
                 {session.result ? `${session.result.wpm.toFixed(1)} WPM` : '未完成'}
               </span>
             </div>
           ))}
           {(recentSessions?.list.length ?? 0) === 0 && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">暂无历史记录</p>
+            <p className="text-sm text-muted-foreground">暂无历史记录</p>
           )}
         </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -368,14 +393,14 @@ function StatsBar({
   elapsed: number
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-sm md:grid-cols-5 dark:border-slate-800/70 dark:bg-slate-900/80">
-      <StatTile label="连接" value={connected ? '在线' : '离线'} icon={connected ? Wifi : WifiOff} />
+    <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-5">
+      <StatTile label="连接" value={connected ? '在线' : '离线'} icon={connected ? Wifi : WifiOff} badgeVariant={connected ? 'success' : 'destructive'} />
       <StatTile label="净 WPM" value={wpm.toFixed(1)} icon={Signal} />
       <StatTile label="原始 WPM" value={rawWpm.toFixed(1)} icon={Keyboard} />
       <StatTile label="准确率" value={`${accuracy.toFixed(2)}%`} icon={Target} />
       <StatTile label="用时" value={formatDuration(elapsed)} icon={Clock3} />
       {wsError && (
-        <p className="col-span-2 text-xs text-rose-600 md:col-span-5 dark:text-rose-400">{wsError}</p>
+        <p className="col-span-2 text-xs text-destructive md:col-span-5">{wsError}</p>
       )}
     </div>
   )
@@ -385,18 +410,20 @@ function StatTile({
   label,
   value,
   icon: Icon,
+  badgeVariant,
 }: {
   label: string
   value: string
   icon: ComponentType<{ className?: string }>
+  badgeVariant?: 'success' | 'destructive'
 }) {
   return (
-    <div className="rounded-lg border border-slate-200/70 bg-white/70 px-3 py-2 dark:border-slate-800/70 dark:bg-slate-900/70">
-      <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+    <div className="rounded-lg border border-border bg-background px-3 py-2">
+      <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         <span>{label}</span>
       </div>
-      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+      {label === '连接' ? <Badge variant={badgeVariant}>{value}</Badge> : <p className="text-base font-semibold text-foreground">{value}</p>}
     </div>
   )
 }

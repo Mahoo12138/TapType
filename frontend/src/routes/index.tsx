@@ -5,6 +5,11 @@ import { useDaily } from '@/api/daily'
 import { useSummary } from '@/api/analysis'
 import { useReviewQueue } from '@/api/errors'
 import { useGoals } from '@/api/goals'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import {
   Keyboard,
   Flame,
@@ -41,11 +46,11 @@ function Dashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-8">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+    <div className="mx-auto max-w-6xl p-6 md:p-8">
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-foreground">
         欢迎回来，{user.username}
       </h1>
-      <p className="mb-8 text-sm text-slate-500 dark:text-slate-400">
+      <p className="mb-8 text-sm text-muted-foreground">
         继续今天的练习，保持进步
       </p>
 
@@ -100,7 +105,7 @@ function SummarySection() {
 
   return (
     <div className="mb-8">
-      <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">
+      <h2 className="mb-4 text-base font-semibold text-foreground">
         累计统计
       </h2>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -130,13 +135,14 @@ function GoalsOverview() {
   return (
     <div className="mb-8">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">今日目标</h2>
-        <button
+        <h2 className="text-base font-semibold text-foreground">今日目标</h2>
+        <Button
           onClick={() => navigate({ to: '/goals' })}
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          variant="link"
+          className="h-auto p-0 text-xs"
         >
           管理目标 →
-        </button>
+        </Button>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {active.slice(0, 3).map((goal) => {
@@ -145,32 +151,22 @@ function GoalsOverview() {
             : 0
           const done = progress >= 100
           return (
-            <div
-              key={goal.id}
-              className="rounded-xl border border-slate-200/60 bg-white/80 p-4 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
-            >
+            <Card key={goal.id} className="border-border/70">
+              <CardContent className="pt-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-medium text-muted-foreground">
                   {GOAL_TYPE_LABELS[goal.goal_type] ?? goal.goal_type}
                 </span>
                 {done && (
-                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
-                    ✓ 已完成
-                  </span>
+                  <Badge variant="success">已完成</Badge>
                 )}
               </div>
-              <p className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <p className="mb-2 text-lg font-semibold text-foreground">
                 {Math.round(goal.current_value)} / {Math.round(goal.target_value)}
               </p>
-              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    done ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-indigo-500 dark:bg-indigo-400'
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+              <Progress value={progress} className={cn('h-1.5', done && '[&>div]:bg-emerald-500')} />
+              </CardContent>
+            </Card>
           )
         })}
       </div>
@@ -181,34 +177,34 @@ function GoalsOverview() {
 function QuickActions() {
   const navigate = useNavigate()
   return (
-    <div className="rounded-xl border border-slate-200/60 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-      <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">
-        快速开始
-      </h2>
-      <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-        选择你想做的事情
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <button
+    <Card className="border-border/70 shadow-[var(--shadow-card)]">
+      <CardHeader>
+        <CardTitle>快速开始</CardTitle>
+        <CardDescription>选择你想做的事情</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-3">
+        <Button
           onClick={() => navigate({ to: '/practice' })}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          variant="default"
         >
           开始练习
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => navigate({ to: '/errors' })}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          variant="outline"
         >
           复习错题
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => navigate({ to: '/analysis' })}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          variant="outline"
         >
           查看分析
-        </button>
+        </Button>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -232,27 +228,29 @@ function StatCard({
   accent: keyof typeof ACCENT_STYLES
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/60 bg-white/80 p-5 backdrop-blur-sm transition-shadow hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/80">
+    <Card className="border-border/70 transition-shadow hover:shadow-[var(--shadow-elevated)]">
+      <CardContent className="pt-5">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
         <div className={`rounded-lg p-2 ${ACCENT_STYLES[accent]}`}>
           <Icon className="h-4 w-4" strokeWidth={2} />
         </div>
       </div>
-      <p className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+      <p className="text-2xl font-semibold tracking-tight text-foreground">
         {value}
       </p>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
 function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200/60 bg-white/60 px-4 py-3 dark:border-slate-800/60 dark:bg-slate-900/60">
-      <Icon className="h-4 w-4 text-slate-400 dark:text-slate-500" strokeWidth={1.8} />
+    <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/60 px-4 py-3">
+      <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
       <div>
-        <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{value}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-lg font-semibold text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </div>
   )

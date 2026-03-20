@@ -3,6 +3,9 @@ import { useState } from 'react'
 import { useLogin, useRegisterInitialAdmin } from '@/api/auth'
 import { usePublicSystemSettings } from '@/api/settings'
 import { Shield, Crown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 export const Route = createFileRoute('/register-admin')({
   component: RegisterAdminPage,
@@ -59,47 +62,46 @@ function RegisterAdminPage() {
     )
   }
 
-  const inputCls =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400'
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
             <Crown className="h-6 w-6" strokeWidth={1.8} />
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
             初始化站点
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">创建首个站长账户（管理员）</p>
+          <p className="mt-1 text-sm text-muted-foreground">创建首个站长账户（管理员）</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-200/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
-        >
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>站长注册</CardTitle>
+            <CardDescription>系统首次初始化，仅需执行一次。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
+            <div className="rounded-lg bg-destructive/15 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="mb-4 flex items-start gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+          <div className="flex items-start gap-2 rounded-lg bg-primary/15 px-3 py-2 text-xs text-primary">
             <Shield className="mt-0.5 h-4 w-4 shrink-0" />
             <span>系统检测到当前没有任何用户，请先完成站长注册后再使用网站。</span>
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div>
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-foreground">
               站长用户名
             </label>
-            <input
+            <Input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className={inputCls}
               placeholder="3-20位，字母数字下划线"
               required
               minLength={3}
@@ -108,56 +110,53 @@ function RegisterAdminPage() {
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
               站长邮箱
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputCls}
               placeholder="admin@email.com"
               required
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
               密码
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputCls}
               placeholder="至少 8 位"
               required
               minLength={8}
             />
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div>
+            <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-foreground">
               确认密码
             </label>
-            <input
+            <Input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputCls}
               placeholder="再次输入密码"
               required
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={publicSettings.isLoading || registerAdmin.isPending || login.isPending}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+            className="w-full"
           >
             {publicSettings.isLoading
               ? '检查系统状态...'
@@ -166,8 +165,10 @@ function RegisterAdminPage() {
                 : login.isPending
                   ? '自动登录中...'
                   : '创建站长并进入系统'}
-          </button>
-        </form>
+          </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

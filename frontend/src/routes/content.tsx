@@ -10,6 +10,17 @@ import {
   Trash2,
   Type,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import {
   useWordBanks,
   useCreateWordBank,
@@ -55,27 +66,31 @@ function Content() {
         <BookOpen className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />
       </div>
 
-      <div className="mb-6 inline-flex rounded-xl border border-slate-200/70 bg-white p-1 dark:border-slate-800/70 dark:bg-slate-900">
-        <button
+      <div className="mb-6 inline-flex rounded-xl border border-border bg-card p-1">
+        <Button
           onClick={() => setTab('word')}
+          variant={tab === 'word' ? 'default' : 'ghost'}
+          size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             tab === 'word'
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              ? ''
+              : 'text-muted-foreground'
           }`}
         >
           词库管理
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setTab('sentence')}
+          variant={tab === 'sentence' ? 'default' : 'ghost'}
+          size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             tab === 'sentence'
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              ? ''
+              : 'text-muted-foreground'
           }`}
         >
           句库管理
-        </button>
+        </Button>
       </div>
 
       {tab === 'word' ? <WordPanel /> : <SentencePanel />}
@@ -152,22 +167,26 @@ function WordPanel() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-      <section className="rounded-xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">词库列表</h2>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>词库列表</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="mb-4 space-y-2">
           {banks.map((bank: WordBank) => (
-            <button
+            <Button
               key={bank.id}
               onClick={() => setSelectedBankId(bank.id)}
+              variant={selectedBankId === bank.id ? 'secondary' : 'ghost'}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
                 selectedBankId === bank.id
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300'
-                  : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                  ? 'text-primary'
+                  : 'text-foreground'
               }`}
             >
               <span className="truncate text-sm font-medium">{bank.name}</span>
               <span className="text-xs opacity-70">{bank.word_count}</span>
-            </button>
+            </Button>
           ))}
           {banks.length === 0 && (
             <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -177,36 +196,36 @@ function WordPanel() {
         </div>
 
         <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <input
+          <Input
             value={bankName}
             onChange={(e) => setBankName(e.target.value)}
             placeholder="新词库名称"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
-          <input
+          <Input
             value={bankDesc}
             onChange={(e) => setBankDesc(e.target.value)}
             placeholder="词库描述（可选）"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
-          <button
+          <Button
             onClick={handleCreateBank}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+            className="w-full"
           >
             <Plus className="h-4 w-4" />
             创建词库
-          </button>
+          </Button>
         </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
+      <Card>
+        <CardContent className="pt-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             {selectedBank ? `${selectedBank.name} · 单词管理` : '请选择词库'}
           </h2>
           {selectedBank && (
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() =>
                   updateBank.mutate({
                     id: selectedBank.id,
@@ -214,16 +233,18 @@ function WordPanel() {
                     description: selectedBank.description,
                   })
                 }
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                variant="outline"
+                size="sm"
               >
                 <Save className="mr-1 inline h-3.5 w-3.5" />保存词库
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => deleteBank.mutate(selectedBank.id)}
-                className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                variant="destructive"
+                size="sm"
               >
                 <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除词库
-              </button>
+              </Button>
               <label className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                 <FileUp className="mr-1 inline h-3.5 w-3.5" />导入
                 <input type="file" accept=".json,.csv" onChange={handleImport} className="hidden" />
@@ -237,60 +258,59 @@ function WordPanel() {
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <input
+                <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="搜索单词"
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="pl-9"
                 />
               </div>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value={0}>全部难度</option>
-                <option value={1}>难度 1</option>
-                <option value={2}>难度 2</option>
-                <option value={3}>难度 3</option>
-                <option value={4}>难度 4</option>
-                <option value={5}>难度 5</option>
-              </select>
-              <span className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v))}>
+                <SelectTrigger className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">全部难度</SelectItem>
+                  <SelectItem value="1">难度 1</SelectItem>
+                  <SelectItem value="2">难度 2</SelectItem>
+                  <SelectItem value="3">难度 3</SelectItem>
+                  <SelectItem value="4">难度 4</SelectItem>
+                  <SelectItem value="5">难度 5</SelectItem>
+                </SelectContent>
+              </Select>
+              <Badge variant="outline" className="rounded-md px-3 py-2">
                 共 {wordsData?.total ?? 0} 条
-              </span>
+              </Badge>
             </div>
 
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_120px_auto]">
-              <input
+              <Input
                 value={wordContent}
                 onChange={(e) => setWordContent(e.target.value)}
                 placeholder="新单词"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
-              <input
+              <Input
                 value={wordDefinition}
                 onChange={(e) => setWordDefinition(e.target.value)}
                 placeholder="释义"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
-              <select
-                value={wordDifficulty}
-                onChange={(e) => setWordDifficulty(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value={1}>难度 1</option>
-                <option value={2}>难度 2</option>
-                <option value={3}>难度 3</option>
-                <option value={4}>难度 4</option>
-                <option value={5}>难度 5</option>
-              </select>
-              <button
+              <Select value={String(wordDifficulty)} onValueChange={(v) => setWordDifficulty(Number(v))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">难度 1</SelectItem>
+                  <SelectItem value="2">难度 2</SelectItem>
+                  <SelectItem value="3">难度 3</SelectItem>
+                  <SelectItem value="4">难度 4</SelectItem>
+                  <SelectItem value="5">难度 5</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
                 onClick={handleCreateWord}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 添加
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-2">
@@ -309,7 +329,7 @@ function WordPanel() {
                     {word.definition || '暂无释义'}
                   </span>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
                       onClick={() =>
                         updateWord.mutate({
                           wordId: word.id,
@@ -318,16 +338,19 @@ function WordPanel() {
                           difficulty: word.difficulty,
                         })
                       }
-                      className="rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      variant="ghost"
+                      size="sm"
                     >
                       保存
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => deleteWord.mutate(word.id)}
-                      className="rounded-md px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
                     >
                       删除
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -340,7 +363,8 @@ function WordPanel() {
             </div>
           </>
         )}
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -414,61 +438,63 @@ function SentencePanel() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-      <section className="rounded-xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">句库列表</h2>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>句库列表</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="mb-4 space-y-2">
           {banks.map((bank: SentenceBank) => (
-            <button
+            <Button
               key={bank.id}
               onClick={() => setSelectedBankId(bank.id)}
+              variant={selectedBankId === bank.id ? 'secondary' : 'ghost'}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
-                selectedBankId === bank.id
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300'
-                  : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                selectedBankId === bank.id ? 'text-primary' : 'text-foreground'
               }`}
             >
               <span className="truncate text-sm font-medium">{bank.name}</span>
               <span className="text-xs opacity-70">{bank.sentence_count}</span>
-            </button>
+            </Button>
           ))}
           {banks.length === 0 && (
-            <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <p className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
               还没有句库，先创建一个。
             </p>
           )}
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <input
+        <div className="space-y-2 border-t border-border pt-4">
+          <Input
             value={bankName}
             onChange={(e) => setBankName(e.target.value)}
             placeholder="新句库名称"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
-          <input
+          <Input
             value={bankCategory}
             onChange={(e) => setBankCategory(e.target.value)}
             placeholder="分类（可选）"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
-          <button
+          <Button
             onClick={handleCreateBank}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+            className="w-full"
           >
             <Plus className="h-4 w-4" />
             创建句库
-          </button>
+          </Button>
         </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
+      <Card>
+        <CardContent className="pt-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-sm font-semibold text-foreground">
             {selectedBank ? `${selectedBank.name} · 句子管理` : '请选择句库'}
           </h2>
           {selectedBank && (
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() =>
                   updateBank.mutate({
                     id: selectedBank.id,
@@ -476,18 +502,20 @@ function SentencePanel() {
                     category: selectedBank.category,
                   })
                 }
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                variant="outline"
+                size="sm"
               >
                 <Save className="mr-1 inline h-3.5 w-3.5" />保存句库
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => deleteBank.mutate(selectedBank.id)}
-                className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                variant="destructive"
+                size="sm"
               >
                 <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除句库
-              </button>
-              <label className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-                <FileUp className="mr-1 inline h-3.5 w-3.5" />导入
+              </Button>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs text-foreground shadow-sm hover:bg-accent">
+                <FileUp className="h-3.5 w-3.5" />导入
                 <input type="file" accept=".json,.csv" onChange={handleImport} className="hidden" />
               </label>
             </div>
@@ -498,68 +526,67 @@ function SentencePanel() {
           <>
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <input
+                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="搜索句子"
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="pl-9"
                 />
               </div>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value={0}>全部难度</option>
-                <option value={1}>难度 1</option>
-                <option value={2}>难度 2</option>
-                <option value={3}>难度 3</option>
-                <option value={4}>难度 4</option>
-                <option value={5}>难度 5</option>
-              </select>
-              <span className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v))}>
+                <SelectTrigger className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">全部难度</SelectItem>
+                  <SelectItem value="1">难度 1</SelectItem>
+                  <SelectItem value="2">难度 2</SelectItem>
+                  <SelectItem value="3">难度 3</SelectItem>
+                  <SelectItem value="4">难度 4</SelectItem>
+                  <SelectItem value="5">难度 5</SelectItem>
+                </SelectContent>
+              </Select>
+              <Badge variant="outline" className="rounded-md px-3 py-2">
                 共 {sentencesData?.total ?? 0} 条
-              </span>
+              </Badge>
             </div>
 
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[2fr_1fr_120px_auto]">
-              <input
+              <Input
                 value={sentenceContent}
                 onChange={(e) => setSentenceContent(e.target.value)}
                 placeholder="新句子"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
-              <input
+              <Input
                 value={sentenceSource}
                 onChange={(e) => setSentenceSource(e.target.value)}
                 placeholder="来源（可选）"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
-              <select
-                value={sentenceDifficulty}
-                onChange={(e) => setSentenceDifficulty(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                <option value={1}>难度 1</option>
-                <option value={2}>难度 2</option>
-                <option value={3}>难度 3</option>
-                <option value={4}>难度 4</option>
-                <option value={5}>难度 5</option>
-              </select>
-              <button
+              <Select value={String(sentenceDifficulty)} onValueChange={(v) => setSentenceDifficulty(Number(v))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">难度 1</SelectItem>
+                  <SelectItem value="2">难度 2</SelectItem>
+                  <SelectItem value="3">难度 3</SelectItem>
+                  <SelectItem value="4">难度 4</SelectItem>
+                  <SelectItem value="5">难度 5</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
                 onClick={handleCreateSentence}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 添加
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-2">
               {sentencesData?.list.map((sentence) => (
                 <div
                   key={sentence.id}
-                  className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-slate-200/70 bg-white/60 px-3 py-2 dark:border-slate-800/70 dark:bg-slate-900/60"
+                  className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-border/70 bg-card/60 px-3 py-2"
                 >
                   <div>
                     <div className="mb-1 flex items-center gap-2">
@@ -573,7 +600,7 @@ function SentencePanel() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
                       onClick={() =>
                         updateSentence.mutate({
                           sentenceId: sentence.id,
@@ -582,29 +609,33 @@ function SentencePanel() {
                           difficulty: sentence.difficulty,
                         })
                       }
-                      className="rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      variant="ghost"
+                      size="sm"
                     >
                       保存
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => deleteSentence.mutate(sentence.id)}
-                      className="rounded-md px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
                     >
                       删除
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
 
               {(sentencesData?.list.length ?? 0) === 0 && (
-                <div className="rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                   还没有句子，先添加几条开始练习。
                 </div>
               )}
             </div>
           </>
         )}
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }

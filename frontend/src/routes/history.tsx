@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Clock3, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSessions } from '@/api/practice'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const Route = createFileRoute('/history')({
   component: HistoryPage,
@@ -25,18 +27,21 @@ function HistoryPage() {
         查看历史练习结果，回顾你的速度与稳定性。
       </p>
 
-      <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/80">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>记录列表</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <ListChecks className="h-4 w-4" />
             <span>共 {total} 条记录</span>
           </div>
-          <button
+          <Button
             onClick={() => navigate({ to: '/practice' })}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             新练习
-          </button>
+          </Button>
         </div>
 
         {isLoading && <p className="text-sm text-slate-500 dark:text-slate-400">加载中...</p>}
@@ -83,23 +88,26 @@ function HistoryPage() {
             第 {page} / {totalPages} 页
           </span>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              variant="outline"
+              size="sm"
             >
               <ChevronLeft className="h-3.5 w-3.5" />上一页
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              variant="outline"
+              size="sm"
             >
               下一页<ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }

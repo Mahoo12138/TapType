@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { useLogin } from '@/api/auth'
 import { usePublicSystemSettings } from '@/api/settings'
 import { useAuthStore } from '@/stores/authStore'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Keyboard } from 'lucide-react'
 
 export const Route = createFileRoute('/login')({
@@ -50,75 +54,78 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Keyboard className="mx-auto h-10 w-10 text-indigo-600 dark:text-indigo-400" strokeWidth={1.5} />
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            TapType
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">登录你的账户</p>
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md space-y-5">
+        <div className="text-center">
+          <Badge variant="outline" className="mb-3 rounded-full px-3 py-1 text-xs tracking-wide uppercase">
+            Focused Practice
+          </Badge>
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Keyboard className="size-6" strokeWidth={1.6} />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">TapType</h1>
+          <p className="mt-1 text-sm text-muted-foreground">登录你的账户，继续今天的训练</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-200/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80"
-        >
-          {error && (
-            <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
-              {error}
-            </div>
-          )}
+        <Card className="border-border/70 shadow-[var(--shadow-card)]">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle>欢迎回来</CardTitle>
+            <CardDescription>输入用户名和密码继续使用。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
-          <div className="mb-4">
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              用户名
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
-              placeholder="输入用户名或邮箱"
-              required
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="block text-sm font-medium text-foreground">
+                  用户名
+                </label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="输入用户名或邮箱"
+                  required
+                />
+              </div>
 
-          <div className="mb-6">
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              密码
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
-              placeholder="输入密码"
-              required
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                  密码
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="输入密码"
+                  required
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={login.isPending}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-          >
-            {login.isPending ? '登录中...' : '登录'}
-          </button>
+              <Button type="submit" disabled={login.isPending} className="w-full">
+                {login.isPending ? '登录中...' : '登录'}
+              </Button>
 
-          <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            没有账户？{' '}
-            <button
-              type="button"
-              onClick={() => navigate({ to: '/register' })}
-              className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-            >
-              立即注册
-            </button>
-          </p>
-        </form>
+              <p className="text-center text-sm text-muted-foreground">
+                没有账户？{' '}
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-sm"
+                  onClick={() => navigate({ to: '/register' })}
+                >
+                  立即注册
+                </Button>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

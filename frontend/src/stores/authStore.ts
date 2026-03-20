@@ -5,6 +5,7 @@ interface AuthState {
   accessToken: string | null
   user: User | null
   setAuth: (token: string, user: User) => void
+  setUser: (user: User) => void
   setAccessToken: (token: string) => void
   logout: () => void
   isLoggedIn: () => boolean
@@ -24,6 +25,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('access_token', token)
     localStorage.setItem('user', JSON.stringify(user))
     set({ accessToken: token, user })
+  },
+
+  setUser: (user: User) => {
+    localStorage.setItem('user', JSON.stringify(user))
+    set({ user })
   },
 
   setAccessToken: (token: string) => {

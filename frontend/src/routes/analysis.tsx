@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useTrend, useKeymap, useSummary } from '@/api/analysis'
 import { useThemeStore } from '@/stores/themeStore'
 import KeyboardHeatmap from '@/components/KeyboardHeatmap'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   LineChart,
   Line,
@@ -61,11 +63,11 @@ function Analysis() {
         </div>
       )}
 
-      {/* WPM trend */}
-      <div className="mb-6 rounded-xl border border-slate-200/60 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">
-          WPM 趋势
-        </h2>
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle>WPM 趋势</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -114,13 +116,14 @@ function Analysis() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Accuracy trend */}
-      <div className="mb-6 rounded-xl border border-slate-200/60 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">
-          准确率趋势
-        </h2>
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle>准确率趋势</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -162,20 +165,22 @@ function Analysis() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Keyboard heatmap */}
-      <div className="rounded-xl border border-slate-200/60 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">
-          键位热力图
-        </h2>
-        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>键位热力图</CardTitle>
+        </CardHeader>
+        <CardContent>
+        <p className="mb-4 text-sm text-muted-foreground">
           颜色越深，错误率越高。帮助你发现薄弱键位。
         </p>
         <div className="mx-auto max-w-lg">
           <KeyboardHeatmap data={keymap ?? []} dark={dark} />
         </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -189,17 +194,19 @@ function PeriodPicker({ value, onChange }: { value: Period; onChange: (v: Period
   return (
     <div className="flex rounded-lg border border-slate-200 dark:border-slate-700">
       {opts.map((o) => (
-        <button
+        <Button
           key={o.v}
           onClick={() => onChange(o.v)}
+          variant={value === o.v ? 'default' : 'ghost'}
+          size="sm"
           className={`px-3 py-1.5 text-xs font-medium transition-colors ${
             value === o.v
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+              ? ''
+              : 'text-muted-foreground'
           } first:rounded-l-[7px] last:rounded-r-[7px]`}
         >
           {o.l}
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -210,17 +217,19 @@ function DaysPicker({ value, onChange }: { value: number; onChange: (v: number) 
   return (
     <div className="flex rounded-lg border border-slate-200 dark:border-slate-700">
       {opts.map((d) => (
-        <button
+        <Button
           key={d}
           onClick={() => onChange(d)}
+          variant={value === d ? 'default' : 'ghost'}
+          size="sm"
           className={`px-3 py-1.5 text-xs font-medium transition-colors ${
             value === d
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+              ? ''
+              : 'text-muted-foreground'
           } first:rounded-l-[7px] last:rounded-r-[7px]`}
         >
           {d}天
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -236,12 +245,14 @@ function SumCard({
   value: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/80">
-      <Icon className="h-4 w-4 text-indigo-500 dark:text-indigo-400" strokeWidth={1.8} />
+    <Card className="shadow-none">
+      <CardContent className="flex items-center gap-3 px-4 py-3">
+      <Icon className="h-4 w-4 text-primary" strokeWidth={1.8} />
       <div>
-        <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{value}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-lg font-semibold text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
