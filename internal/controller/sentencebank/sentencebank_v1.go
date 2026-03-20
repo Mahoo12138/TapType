@@ -109,10 +109,12 @@ func (c *ControllerV1) CreateSentence(ctx context.Context, req *v1.CreateSentenc
 	userID := r.GetCtxVar("user_id").String()
 
 	sent, err := c.sentenceSvc.CreateSentence(ctx, userID, req.Id, sentenceService.CreateSentenceReq{
-		Content:    req.Content,
-		Source:     req.Source,
-		Difficulty: req.Difficulty,
-		Tags:       req.Tags,
+		Content:           req.Content,
+		Translation:       req.Translation,
+		TranslationSource: req.TranslationSource,
+		Source:            req.Source,
+		Difficulty:        req.Difficulty,
+		Tags:              req.Tags,
 	})
 	if err != nil {
 		return nil, err
@@ -127,10 +129,12 @@ func (c *ControllerV1) UpdateSentence(ctx context.Context, req *v1.UpdateSentenc
 	userID := r.GetCtxVar("user_id").String()
 
 	sent, err := c.sentenceSvc.UpdateSentence(ctx, userID, req.SentenceId, sentenceService.UpdateSentenceReq{
-		Content:    req.Content,
-		Source:     req.Source,
-		Difficulty: req.Difficulty,
-		Tags:       req.Tags,
+		Content:           req.Content,
+		Translation:       req.Translation,
+		TranslationSource: req.TranslationSource,
+		Source:            req.Source,
+		Difficulty:        req.Difficulty,
+		Tags:              req.Tags,
 	})
 	if err != nil {
 		return nil, err

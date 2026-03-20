@@ -59,22 +59,26 @@ type ListSentencesRes struct {
 }
 
 type CreateSentenceReq struct {
-	g.Meta     `path:"/sentence-banks/{id}/sentences" method:"post" tags:"SentenceBank" summary:"Create sentence"`
-	Id         string `json:"id" in:"path"`
-	Content    string `json:"content"    v:"required#content is required"`
-	Source     string `json:"source"`
-	Difficulty int    `json:"difficulty"`
-	Tags       string `json:"tags"`
+	g.Meta            `path:"/sentence-banks/{id}/sentences" method:"post" tags:"SentenceBank" summary:"Create sentence"`
+	Id                string `json:"id" in:"path"`
+	Content           string `json:"content"    v:"required#content is required"`
+	Translation       string `json:"translation"`
+	TranslationSource string `json:"translation_source"`
+	Source            string `json:"source"`
+	Difficulty        int    `json:"difficulty"`
+	Tags              string `json:"tags"`
 }
 type CreateSentenceRes struct{}
 
 type UpdateSentenceReq struct {
-	g.Meta     `path:"/sentences/{sentenceId}" method:"put" tags:"SentenceBank" summary:"Update sentence"`
-	SentenceId string  `json:"sentenceId" in:"path"`
-	Content    *string `json:"content"`
-	Source     *string `json:"source"`
-	Difficulty *int    `json:"difficulty"`
-	Tags       *string `json:"tags"`
+	g.Meta            `path:"/sentences/{sentenceId}" method:"put" tags:"SentenceBank" summary:"Update sentence"`
+	SentenceId        string  `json:"sentenceId" in:"path"`
+	Content           *string `json:"content"`
+	Translation       *string `json:"translation"`
+	TranslationSource *string `json:"translation_source"`
+	Source            *string `json:"source"`
+	Difficulty        *int    `json:"difficulty"`
+	Tags              *string `json:"tags"`
 }
 type UpdateSentenceRes struct{}
 

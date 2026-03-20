@@ -15,6 +15,7 @@ import (
 	achievementCtrl "taptype/internal/controller/achievement"
 	adminCtrl "taptype/internal/controller/admin"
 	analysisCtrl "taptype/internal/controller/analysis"
+	articlebankCtrl "taptype/internal/controller/articlebank"
 	authCtrl "taptype/internal/controller/auth"
 	dailyCtrl "taptype/internal/controller/daily"
 	errrecordCtrl "taptype/internal/controller/errrecord"
@@ -27,6 +28,7 @@ import (
 	"taptype/resource"
 	achievementService "taptype/internal/service/achievement"
 	analysisService "taptype/internal/service/analysis"
+	articleService "taptype/internal/service/article"
 	authService "taptype/internal/service/auth"
 	dailyService "taptype/internal/service/daily"
 	errorsService "taptype/internal/service/errors"
@@ -66,6 +68,7 @@ var (
 			practiceSvc := practiceService.NewService(gormDB, errorsSvc, dailySvc, achievementSvc, goalSvc)
 			wordSvc := wordService.NewService(gormDB)
 			sentenceSvc := sentenceService.NewService(gormDB)
+			articleSvc := articleService.NewService(gormDB)
 			settingsSvc := settingsService.NewService(gormDB)
 
 			// WebSocket controller (manual handler, not GoFrame Bind pattern)
@@ -106,6 +109,7 @@ var (
 						practiceCtrl.NewV1(practiceSvc),
 						wordbankCtrl.NewV1(wordSvc),
 						sentencebankCtrl.NewV1(sentenceSvc),
+						articlebankCtrl.NewV1(articleSvc),
 						analysisCtrl.NewV1(analysisSvc),
 						errrecordCtrl.NewV1(errorsSvc),
 						goalCtrl.NewV1(goalSvc),

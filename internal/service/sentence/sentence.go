@@ -49,17 +49,21 @@ type UpdateBankReq struct {
 }
 
 type CreateSentenceReq struct {
-	Content    string `json:"content"`
-	Source     string `json:"source"`
-	Difficulty int    `json:"difficulty"`
-	Tags       string `json:"tags"`
+	Content           string `json:"content"`
+	Translation       string `json:"translation"`
+	TranslationSource string `json:"translation_source"`
+	Source            string `json:"source"`
+	Difficulty        int    `json:"difficulty"`
+	Tags              string `json:"tags"`
 }
 
 type UpdateSentenceReq struct {
-	Content    *string `json:"content"`
-	Source     *string `json:"source"`
-	Difficulty *int    `json:"difficulty"`
-	Tags       *string `json:"tags"`
+	Content           *string `json:"content"`
+	Translation       *string `json:"translation"`
+	TranslationSource *string `json:"translation_source"`
+	Source            *string `json:"source"`
+	Difficulty        *int    `json:"difficulty"`
+	Tags              *string `json:"tags"`
 }
 
 type SentenceListResult struct {
@@ -203,15 +207,21 @@ func (s *serviceImpl) CreateSentence(ctx context.Context, userID, bankID string,
 		req.Difficulty = 5
 	}
 	now := time.Now()
+	translationSource := req.TranslationSource
+	if translationSource == "" {
+		translationSource = "manual"
+	}
 	sent := &entity.Sentence{
-		ID:         uuid.New().String(),
-		BankID:     bankID,
-		Content:    req.Content,
-		Source:     req.Source,
-		Difficulty:  req.Difficulty,
-		Tags:        req.Tags,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:                uuid.New().String(),
+		BankID:            bankID,
+		Content:           req.Content,
+		Translation:       req.Translation,
+		TranslationSource: translationSource,
+		Source:            req.Source,
+		Difficulty:        req.Difficulty,
+		Tags:              req.Tags,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	if err := s.db.WithContext(ctx).Create(sent).Error; err != nil {
 		return nil, gerror.NewCode(code.CodeInternalError, err.Error())
@@ -231,6 +241,15 @@ func (s *serviceImpl) UpdateSentence(ctx context.Context, userID, sentenceID str
 	updates := map[string]interface{}{"updated_at": time.Now()}
 	if req.Content != nil {
 		updates["content"] = *req.Content
+	}
+	if req.Translation != nil {
+		updates["translation"] = *req.Translation
+		if req.TranslationSource == nil {
+			updates["translation_source"] = "manual"
+		}
+	}
+	if req.TranslationSource != nil {
+		updates["translation_source"] = *req.TranslationSource
 	}
 	if req.Source != nil {
 		updates["source"] = *req.Source
@@ -269,10 +288,12 @@ func (s *serviceImpl) DeleteSentence(ctx context.Context, userID, sentenceID str
 // ─── Import / Export ─────────────────────────────────────
 
 type jsonSentence struct {
-	Content    string `json:"content"`
-	Source     string `json:"source,omitempty"`
-	Difficulty int    `json:"difficulty,omitempty"`
-	Tags       string `json:"tags,omitempty"`
+	Content           string `json:"content"`
+	Translation       string `json:"translation,omitempty"`
+	TranslationSource string `json:"translation_source,omitempty"`
+	Source            string `json:"source,omitempty"`
+	Difficulty        int    `json:"difficulty,omitempty"`
+	Tags              string `json:"tags,omitempty"`
 }
 
 func (s *serviceImpl) ImportSentences(ctx context.Context, userID, bankID string, format string, data io.Reader) (int, error) {
@@ -311,15 +332,21 @@ func (s *serviceImpl) ImportSentences(ctx context.Context, userID, bankID string
 		if d > 5 {
 			d = 5
 		}
+		ts := item.TranslationSource
+		if ts == "" {
+			ts = "manual"
+		}
 		sentences = append(sentences, entity.Sentence{
-			ID:         uuid.New().String(),
-			BankID:     bankID,
-			Content:    item.Content,
-			Source:     item.Source,
-			Difficulty:  d,
-			Tags:        item.Tags,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:                uuid.New().String(),
+			BankID:            bankID,
+			Content:           item.Content,
+			Translation:       item.Translation,
+			TranslationSource: ts,
+			Source:            item.Source,
+			Difficulty:        d,
+			Tags:              item.Tags,
+			CreatedAt:         now,
+			UpdatedAt:         now,
 		})
 	}
 
@@ -341,10 +368,12 @@ func (s *serviceImpl) ExportSentences(ctx context.Context, userID, bankID string
 	items := make([]jsonSentence, len(sentences))
 	for i, s := range sentences {
 		items[i] = jsonSentence{
-			Content:    s.Content,
-			Source:     s.Source,
-			Difficulty:  s.Difficulty,
-			Tags:        s.Tags,
+			Content:           s.Content,
+			Translation:       s.Translation,
+			TranslationSource: s.TranslationSource,
+			Source:            s.Source,
+			Difficulty:        s.Difficulty,
+			Tags:              s.Tags,
 		}
 	}
 
@@ -389,6 +418,12 @@ func parseCSVSentences(r io.Reader) ([]jsonSentence, error) {
 		if idx, ok := colIndex["source"]; ok && idx < len(record) {
 			item.Source = strings.TrimSpace(record[idx])
 		}
+		if idx, ok := colIndex["translation"]; ok && idx < len(record) {
+			item.Translation = strings.TrimSpace(record[idx])
+		}
+		if idx, ok := colIndex["translation_source"]; ok && idx < len(record) {
+			item.TranslationSource = strings.TrimSpace(record[idx])
+		}
 		if idx, ok := colIndex["tags"]; ok && idx < len(record) {
 			item.Tags = strings.TrimSpace(record[idx])
 		}
@@ -400,9 +435,9 @@ func parseCSVSentences(r io.Reader) ([]jsonSentence, error) {
 func marshalCSVSentences(items []jsonSentence) ([]byte, error) {
 	var buf strings.Builder
 	w := csv.NewWriter(&buf)
-	_ = w.Write([]string{"content", "source", "difficulty", "tags"})
+	_ = w.Write([]string{"content", "translation", "translation_source", "source", "difficulty", "tags"})
 	for _, item := range items {
-		_ = w.Write([]string{item.Content, item.Source, fmt.Sprintf("%d", item.Difficulty), item.Tags})
+		_ = w.Write([]string{item.Content, item.Translation, item.TranslationSource, item.Source, fmt.Sprintf("%d", item.Difficulty), item.Tags})
 	}
 	w.Flush()
 	return []byte(buf.String()), nil
