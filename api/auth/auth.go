@@ -15,4 +15,5 @@ type IAuthPublicV1 interface {
 
 type IAuthV1 interface {
 	Me(ctx context.Context, req *v1.MeReq) (res *v1.MeRes, err error)
+	UpdateProfile(ctx context.Context, req *v1.UpdateProfileReq) (res *v1.UpdateProfileRes, err error)
 }

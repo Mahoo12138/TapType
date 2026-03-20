@@ -64,3 +64,18 @@ type MeRes struct {
 	IsActive  int         `json:"is_active"`
 	CreatedAt interface{} `json:"created_at"`
 }
+
+type UpdateProfileReq struct {
+	g.Meta   `path:"/auth/profile" method:"put" tags:"Auth" summary:"Update current user profile"`
+	Username string `json:"username" v:"required|length:3,20|regex:^[a-zA-Z0-9_]+$#用户名必填|用户名长度3-20位|只允许字母数字下划线"`
+	Email    string `json:"email" v:"required|email#邮箱必填|邮箱格式不正确"`
+}
+
+type UpdateProfileRes struct {
+	ID        string      `json:"id"`
+	Username  string      `json:"username"`
+	Email     string      `json:"email"`
+	Role      string      `json:"role"`
+	IsActive  int         `json:"is_active"`
+	CreatedAt interface{} `json:"created_at"`
+}

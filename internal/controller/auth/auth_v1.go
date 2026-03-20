@@ -112,3 +112,25 @@ func (c *ControllerV1) Me(ctx context.Context, req *v1.MeReq) (res *v1.MeRes, er
 		CreatedAt: user.CreatedAt,
 	}, nil
 }
+
+func (c *ControllerV1) UpdateProfile(ctx context.Context, req *v1.UpdateProfileReq) (res *v1.UpdateProfileRes, err error) {
+	r := g.RequestFromCtx(ctx)
+	userID := r.GetCtxVar("user_id").String()
+	if userID == "" {
+		return nil, gerror.NewCode(code.CodeUnauthorized, "unauthorized")
+	}
+
+	user, err := c.authSvc.UpdateCurrentUser(ctx, userID, req.Username, req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.UpdateProfileRes{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt,
+	}, nil
+}

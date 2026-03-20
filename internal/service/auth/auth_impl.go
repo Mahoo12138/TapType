@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -214,6 +215,104 @@ func (s *serviceImpl) GetCurrentUser(ctx context.Context, userID string) (*entit
 		return nil, gerror.NewCode(code.CodeNotFound)
 	}
 	return &user, nil
+}
+
+func (s *serviceImpl) UpdateCurrentUser(ctx context.Context, userID, username, email string) (*entity.User, error) {
+	var user entity.User
+	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, gerror.NewCode(code.CodeNotFound, "user not found")
+		}
+		return nil, gerror.NewCode(code.CodeInternalError)
+	}
+
+	if user.Role != "admin" && username != user.Username {
+		allowUsernameChange, err := s.getSystemBoolSetting(ctx, "system.allow_username_change", true)
+		if err != nil {
+			return nil, err
+		}
+		if !allowUsernameChange {
+			return nil, gerror.NewCode(code.CodeForbidden, "username change is disabled by administrator")
+		}
+	}
+
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&entity.User{}).
+		Where("username = ? AND id <> ?", username, userID).
+		Count(&count).Error; err != nil {
+		return nil, gerror.NewCode(code.CodeInternalError)
+	}
+	if count > 0 {
+		return nil, gerror.NewCode(code.CodeUsernameTaken)
+	}
+
+	if err := s.db.WithContext(ctx).Model(&entity.User{}).
+		Where("email = ? AND id <> ?", email, userID).
+		Count(&count).Error; err != nil {
+		return nil, gerror.NewCode(code.CodeInternalError)
+	}
+	if count > 0 {
+		return nil, gerror.NewCode(code.CodeEmailTaken)
+	}
+
+	if err := s.db.WithContext(ctx).Model(&user).Updates(map[string]interface{}{
+		"username": username,
+		"email":    email,
+	}).Error; err != nil {
+		return nil, gerror.NewCode(code.CodeInternalError)
+	}
+
+	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
+		return nil, gerror.NewCode(code.CodeInternalError)
+	}
+	return &user, nil
+}
+
+func (s *serviceImpl) getSystemBoolSetting(ctx context.Context, key string, defaultValue bool) (bool, error) {
+	var def entity.SettingDefinition
+	err := s.db.WithContext(ctx).
+		Where("key = ? AND scope = ?", key, "system").
+		First(&def).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return false, gerror.NewCode(code.CodeInternalError)
+	}
+
+	value := ""
+	if err == nil {
+		value = strings.TrimSpace(def.DefaultValue)
+	}
+
+	var ss entity.SystemSetting
+	err = s.db.WithContext(ctx).
+		Where("definition_key = ?", key).
+		First(&ss).Error
+	if err == nil {
+		value = strings.TrimSpace(ss.Value)
+	} else if err != gorm.ErrRecordNotFound {
+		return false, gerror.NewCode(code.CodeInternalError)
+	}
+
+	if value == "" {
+		if defaultValue {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	if b, parseErr := strconv.ParseBool(strings.ToLower(value)); parseErr == nil {
+		return b, nil
+	}
+	if value == "1" {
+		return true, nil
+	}
+	if value == "0" {
+		return false, nil
+	}
+
+	if defaultValue {
+		return true, nil
+	}
+	return false, nil
 }
 
 // JWT Claims
