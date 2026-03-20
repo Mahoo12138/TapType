@@ -54,7 +54,18 @@ export function useSentences(bankId: string, page = 1, pageSize = 20, search = '
 export function useCreateSentence() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ bankId, ...data }: { bankId: string; content: string; source?: string; difficulty?: number; tags?: string }) =>
+    mutationFn: ({
+      bankId,
+      ...data
+    }: {
+      bankId: string
+      content: string
+      translation?: string
+      translation_source?: string
+      source?: string
+      difficulty?: number
+      tags?: string
+    }) =>
       request<Sentence>(`/sentence-banks/${bankId}/sentences`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ['sentences', v.bankId] })
@@ -66,7 +77,18 @@ export function useCreateSentence() {
 export function useUpdateSentence() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ sentenceId, ...data }: { sentenceId: string; content?: string; source?: string; difficulty?: number; tags?: string }) =>
+    mutationFn: ({
+      sentenceId,
+      ...data
+    }: {
+      sentenceId: string
+      content?: string
+      translation?: string
+      translation_source?: string
+      source?: string
+      difficulty?: number
+      tags?: string
+    }) =>
       request<Sentence>(`/sentences/${sentenceId}`, { method: 'PUT', body: JSON.stringify(data) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sentences'] }),
   })

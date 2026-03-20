@@ -153,6 +153,8 @@ export interface Sentence {
   id: string
   bank_id: string
   content: string
+  translation: string
+  translation_source: string
   source: string
   difficulty: number
   word_count: number
@@ -291,4 +293,82 @@ export interface UserControlItem {
   label: string
   is_visible: boolean
   is_editable: boolean
+}
+
+// --- Article Library types ---
+
+export interface ArticleBank {
+  id: string
+  owner_id: string
+  name: string
+  description: string
+  language: string
+  is_public: number
+  article_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Article {
+  id: string
+  bank_id: string
+  title: string
+  author: string
+  source_url: string
+  content?: string
+  paragraph_count: number
+  total_char_count: number
+  difficulty: number
+  tags: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ArticleParagraph {
+  id: string
+  article_id: string
+  paragraph_index: number
+  content: string
+  char_count: number
+  sentence_count: number
+  created_at: string
+}
+
+export interface ArticleSentence {
+  id: string
+  paragraph_id: string
+  sentence_index: number
+  content: string
+  translation: string
+  translation_source: string
+  created_at: string
+  updated_at: string
+}
+
+export interface UserArticleProgress {
+  id: string
+  user_id: string
+  article_id: string
+  completed_paragraphs: number
+  total_paragraphs: number
+  status: 'not_started' | 'in_progress' | 'completed'
+  last_practiced_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ArticleDetail extends Article {
+  paragraphs: ArticleParagraph[]
+  progress: UserArticleProgress | null
+}
+
+export interface ParagraphDetail {
+  paragraph: ArticleParagraph
+  sentences: ArticleSentence[]
+  progress: UserArticleProgress | null
+}
+
+export interface ProgressItem extends UserArticleProgress {
+  article_title: string
 }

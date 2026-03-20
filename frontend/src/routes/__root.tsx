@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Keyboard,
   BookOpen,
+  FileText,
   BarChart3,
   AlertCircle,
   History,
@@ -139,6 +140,7 @@ function DesktopSidebar({
         <NavLink to="/" label="仪表盘" icon={LayoutDashboard} onNav={onNav} />
         <NavLink to="/practice" label="打字练习" icon={Keyboard} onNav={onNav} />
         <NavLink to="/content" label="内容管理" icon={BookOpen} onNav={onNav} />
+        <NavLink to="/articles" label="文章库" icon={FileText} onNav={onNav} />
         <NavLink to="/history" label="练习记录" icon={History} onNav={onNav} />
         <NavLink to="/analysis" label="数据分析" icon={BarChart3} onNav={onNav} />
         <NavLink to="/errors" label="错题集" icon={AlertCircle} onNav={onNav} />
@@ -192,6 +194,7 @@ function MobileSidebar({
         <NavLink to="/" label="仪表盘" icon={LayoutDashboard} onNav={onNav} />
         <NavLink to="/practice" label="打字练习" icon={Keyboard} onNav={onNav} />
         <NavLink to="/content" label="内容管理" icon={BookOpen} onNav={onNav} />
+        <NavLink to="/articles" label="文章库" icon={FileText} onNav={onNav} />
         <NavLink to="/history" label="练习记录" icon={History} onNav={onNav} />
         <NavLink to="/analysis" label="数据分析" icon={BarChart3} onNav={onNav} />
         <NavLink to="/errors" label="错题集" icon={AlertCircle} onNav={onNav} />

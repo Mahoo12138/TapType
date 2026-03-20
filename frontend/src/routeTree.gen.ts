@@ -18,6 +18,7 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as ErrorsRouteImport } from './routes/errors'
 import { Route as ContentRouteImport } from './routes/content'
+import { Route as ArticlesRouteImport } from './routes/articles'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
@@ -67,6 +68,11 @@ const ContentRoute = ContentRouteImport.update({
   path: '/content',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArticlesRoute = ArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalysisRoute = AnalysisRouteImport.update({
   id: '/analysis',
   path: '/analysis',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
+  '/articles': typeof ArticlesRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
+  '/articles': typeof ArticlesRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/achievements': typeof AchievementsRoute
   '/analysis': typeof AnalysisRoute
+  '/articles': typeof ArticlesRoute
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achievements'
     | '/analysis'
+    | '/articles'
     | '/content'
     | '/errors'
     | '/goals'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achievements'
     | '/analysis'
+    | '/articles'
     | '/content'
     | '/errors'
     | '/goals'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achievements'
     | '/analysis'
+    | '/articles'
     | '/content'
     | '/errors'
     | '/goals'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AchievementsRoute: typeof AchievementsRoute
   AnalysisRoute: typeof AnalysisRoute
+  ArticlesRoute: typeof ArticlesRoute
   ContentRoute: typeof ContentRoute
   ErrorsRoute: typeof ErrorsRoute
   GoalsRoute: typeof GoalsRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/articles': {
+      id: '/articles'
+      path: '/articles'
+      fullPath: '/articles'
+      preLoaderRoute: typeof ArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analysis': {
       id: '/analysis'
       path: '/analysis'
@@ -279,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AchievementsRoute: AchievementsRoute,
   AnalysisRoute: AnalysisRoute,
+  ArticlesRoute: ArticlesRoute,
   ContentRoute: ContentRoute,
   ErrorsRoute: ErrorsRoute,
   GoalsRoute: GoalsRoute,
