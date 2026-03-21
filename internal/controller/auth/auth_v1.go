@@ -65,10 +65,11 @@ func (c *ControllerV1Public) Login(ctx context.Context, req *v1.LoginReq) (res *
 		AccessToken: accessToken,
 		ExpiresIn:   900,
 		User: map[string]interface{}{
-			"id":       user.ID,
-			"username": user.Username,
-			"email":    user.Email,
-			"role":     user.Role,
+			"id":              user.ID,
+			"username":        user.Username,
+			"email":           user.Email,
+			"avatar_media_id": user.AvatarMediaID,
+			"role":            user.Role,
 		},
 	}, nil
 }
@@ -104,12 +105,13 @@ func (c *ControllerV1) Me(ctx context.Context, req *v1.MeReq) (res *v1.MeRes, er
 	}
 
 	return &v1.MeRes{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role,
-		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt,
+		ID:            user.ID,
+		Username:      user.Username,
+		Email:         user.Email,
+		AvatarMediaID: user.AvatarMediaID,
+		Role:          user.Role,
+		IsActive:      user.IsActive,
+		CreatedAt:     user.CreatedAt,
 	}, nil
 }
 
@@ -126,11 +128,12 @@ func (c *ControllerV1) UpdateProfile(ctx context.Context, req *v1.UpdateProfileR
 	}
 
 	return &v1.UpdateProfileRes{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role,
-		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt,
+		ID:            user.ID,
+		Username:      user.Username,
+		Email:         user.Email,
+		AvatarMediaID: user.AvatarMediaID,
+		Role:          user.Role,
+		IsActive:      user.IsActive,
+		CreatedAt:     user.CreatedAt,
 	}, nil
 }
