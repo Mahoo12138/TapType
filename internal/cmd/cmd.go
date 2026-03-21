@@ -20,12 +20,12 @@ import (
 	dailyCtrl "taptype/internal/controller/daily"
 	errrecordCtrl "taptype/internal/controller/errrecord"
 	goalCtrl "taptype/internal/controller/goal"
+	mediaCtrl "taptype/internal/controller/media"
 	practiceCtrl "taptype/internal/controller/practice"
 	sentencebankCtrl "taptype/internal/controller/sentencebank"
 	settingsCtrl "taptype/internal/controller/settings"
 	wordbankCtrl "taptype/internal/controller/wordbank"
 	"taptype/internal/middleware"
-	"taptype/resource"
 	achievementService "taptype/internal/service/achievement"
 	analysisService "taptype/internal/service/analysis"
 	articleService "taptype/internal/service/article"
@@ -33,10 +33,12 @@ import (
 	dailyService "taptype/internal/service/daily"
 	errorsService "taptype/internal/service/errors"
 	goalService "taptype/internal/service/goal"
+	mediaService "taptype/internal/service/media"
 	practiceService "taptype/internal/service/practice"
 	sentenceService "taptype/internal/service/sentence"
 	settingsService "taptype/internal/service/settings"
 	wordService "taptype/internal/service/word"
+	"taptype/resource"
 	"taptype/utility/db"
 )
 
@@ -70,9 +72,14 @@ var (
 			sentenceSvc := sentenceService.NewService(gormDB)
 			articleSvc := articleService.NewService(gormDB)
 			settingsSvc := settingsService.NewService(gormDB)
+			mediaSvc := mediaService.NewService(gormDB)
+			if err := mediaSvc.SeedSystemSounds(ctx, resource.Sounds); err != nil {
+				g.Log().Warningf(ctx, "seed default system sounds failed: %v", err)
+			}
 
 			// WebSocket controller (manual handler, not GoFrame Bind pattern)
 			wsPracticeController := controller.NewWSPracticeController()
+			mediaFileController := mediaCtrl.NewFileHandler(mediaSvc, jwtSecret)
 
 			s := g.Server()
 
@@ -85,9 +92,13 @@ var (
 				})
 			})
 
+			s.BindHandler("/api/v1/media/{id}", mediaFileController.Serve)
+
 			// API routes — GoFrame standard Bind pattern
 			s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.CORS)
+				// Limit request body size to 10MB to prevent large uploads from crashing the server
+				group.Middleware(middleware.UploadSizeLimit(10 * 1024 * 1024))
 				group.Middleware(middleware.HandlerResponse)
 
 				// Public auth routes (no JWT required) — stricter rate limit
@@ -95,6 +106,7 @@ var (
 					publicGroup.Middleware(middleware.RateLimit("auth", middleware.RateLimitConfig{MaxTokens: 5, RefillRate: 1}))
 					publicGroup.Bind(
 						authCtrl.NewV1Public(authSvc),
+						mediaCtrl.NewPublicV1(mediaSvc),
 						settingsCtrl.NewPublicV1(settingsSvc),
 					)
 				})
@@ -115,6 +127,7 @@ var (
 						goalCtrl.NewV1(goalSvc),
 						dailyCtrl.NewV1(dailySvc),
 						achievementCtrl.NewV1(achievementSvc),
+						mediaCtrl.NewV1(mediaSvc),
 						settingsCtrl.NewV1(settingsSvc),
 					)
 
@@ -123,6 +136,7 @@ var (
 						adminGroup.Middleware(middleware.AdminOnly)
 						adminGroup.Bind(
 							adminCtrl.NewV1(gormDB),
+							mediaCtrl.NewAdminV1(mediaSvc),
 							settingsCtrl.NewAdminV1(settingsSvc),
 						)
 					})
@@ -167,5 +181,3 @@ var (
 		},
 	}
 )
-
-
