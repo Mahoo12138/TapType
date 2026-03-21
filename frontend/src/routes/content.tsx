@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import {
   BookOpen,
   CaseSensitive,
+  ChevronRight,
+  FileText,
   FileUp,
   Plus,
   Save,
@@ -10,6 +12,7 @@ import {
   Trash2,
   Type,
 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,14 +46,27 @@ import {
   useDeleteSentence,
   useImportSentences,
 } from '@/api/sentenceBanks'
-import type { SentenceBank, WordBank } from '@/types/api'
+import {
+  useArticleBanks,
+  useCreateArticleBank,
+  useDeleteArticleBank,
+  useArticles,
+  useCreateArticle,
+  useDeleteArticle,
+  useArticleDetail,
+  useArticleSentences,
+  useUpdateArticleSentence,
+  useArticleProgress,
+  useResetProgress,
+} from '@/api/articleBanks'
+import type { Article, ArticleBank, ArticleSentence, ProgressItem, Sentence, SentenceBank, WordBank } from '@/types/api'
 
 export const Route = createFileRoute('/content')({
   component: Content,
 })
 
 function Content() {
-  const [tab, setTab] = useState<'word' | 'sentence'>('word')
+  const [tab, setTab] = useState<'word' | 'sentence' | 'article'>('word')
 
   return (
     <div className="mx-auto max-w-7xl p-8">
@@ -60,7 +76,7 @@ function Content() {
             内容管理
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            管理你的词库与句库，支持增删改查和批量导入。
+            管理词库、句库与文章库，支持增删改查和批量导入。
           </p>
         </div>
         <BookOpen className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />
@@ -72,9 +88,7 @@ function Content() {
           variant={tab === 'word' ? 'default' : 'ghost'}
           size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === 'word'
-              ? ''
-              : 'text-muted-foreground'
+            tab === 'word' ? '' : 'text-muted-foreground'
           }`}
         >
           词库管理
@@ -84,16 +98,26 @@ function Content() {
           variant={tab === 'sentence' ? 'default' : 'ghost'}
           size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === 'sentence'
-              ? ''
-              : 'text-muted-foreground'
+            tab === 'sentence' ? '' : 'text-muted-foreground'
           }`}
         >
           句库管理
         </Button>
+        <Button
+          onClick={() => setTab('article')}
+          variant={tab === 'article' ? 'default' : 'ghost'}
+          size="sm"
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === 'article' ? '' : 'text-muted-foreground'
+          }`}
+        >
+          文章库
+        </Button>
       </div>
 
-      {tab === 'word' ? <WordPanel /> : <SentencePanel />}
+      {tab === 'word' && <WordPanel />}
+      {tab === 'sentence' && <SentencePanel />}
+      {tab === 'article' && <ArticlePanel />}
     </div>
   )
 }
@@ -376,6 +400,7 @@ function SentencePanel() {
   const [bankName, setBankName] = useState('')
   const [bankCategory, setBankCategory] = useState('')
   const [sentenceContent, setSentenceContent] = useState('')
+  const [sentenceTranslation, setSentenceTranslation] = useState('')
   const [sentenceSource, setSentenceSource] = useState('')
   const [sentenceDifficulty, setSentenceDifficulty] = useState(3)
 
@@ -415,12 +440,14 @@ function SentencePanel() {
       {
         bankId: selectedBankId,
         content: sentenceContent.trim(),
+        translation: sentenceTranslation.trim() || undefined,
         source: sentenceSource.trim(),
         difficulty: sentenceDifficulty,
       },
       {
         onSuccess: () => {
           setSentenceContent('')
+          setSentenceTranslation('')
           setSentenceSource('')
           setSentenceDifficulty(3)
         },
@@ -552,78 +579,51 @@ function SentencePanel() {
               </Badge>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[2fr_1fr_120px_auto]">
-              <Input
-                value={sentenceContent}
-                onChange={(e) => setSentenceContent(e.target.value)}
-                placeholder="新句子"
-              />
-              <Input
-                value={sentenceSource}
-                onChange={(e) => setSentenceSource(e.target.value)}
-                placeholder="来源（可选）"
-              />
-              <Select value={String(sentenceDifficulty)} onValueChange={(v) => setSentenceDifficulty(Number(v))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">难度 1</SelectItem>
-                  <SelectItem value="2">难度 2</SelectItem>
-                  <SelectItem value="3">难度 3</SelectItem>
-                  <SelectItem value="4">难度 4</SelectItem>
-                  <SelectItem value="5">难度 5</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleCreateSentence}
-              >
-                添加
-              </Button>
+            <div className="mb-4 space-y-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <Input
+                  value={sentenceContent}
+                  onChange={(e) => setSentenceContent(e.target.value)}
+                  placeholder="新句子内容"
+                />
+                <Input
+                  value={sentenceTranslation}
+                  onChange={(e) => setSentenceTranslation(e.target.value)}
+                  placeholder="翻译（可选）"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_120px_auto]">
+                <Input
+                  value={sentenceSource}
+                  onChange={(e) => setSentenceSource(e.target.value)}
+                  placeholder="来源（可选）"
+                />
+                <Select value={String(sentenceDifficulty)} onValueChange={(v) => setSentenceDifficulty(Number(v))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">难度 1</SelectItem>
+                    <SelectItem value="2">难度 2</SelectItem>
+                    <SelectItem value="3">难度 3</SelectItem>
+                    <SelectItem value="4">难度 4</SelectItem>
+                    <SelectItem value="5">难度 5</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleCreateSentence}>添加</Button>
+              </div>
             </div>
 
             <div className="space-y-2">
               {sentencesData?.list.map((sentence) => (
-                <div
+                <SentenceRow
                   key={sentence.id}
-                  className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-border/70 bg-card/60 px-3 py-2"
-                >
-                  <div>
-                    <div className="mb-1 flex items-center gap-2">
-                      <CaseSensitive className="h-4 w-4 text-indigo-400" />
-                      <span className="line-clamp-1 text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {sentence.content}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      来源：{sentence.source || '未知'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      onClick={() =>
-                        updateSentence.mutate({
-                          sentenceId: sentence.id,
-                          content: sentence.content,
-                          source: sentence.source,
-                          difficulty: sentence.difficulty,
-                        })
-                      }
-                      variant="ghost"
-                      size="sm"
-                    >
-                      保存
-                    </Button>
-                    <Button
-                      onClick={() => deleteSentence.mutate(sentence.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      删除
-                    </Button>
-                  </div>
-                </div>
+                  sentence={sentence}
+                  onUpdate={(data) =>
+                    updateSentence.mutate({ sentenceId: sentence.id, ...data })
+                  }
+                  onDelete={() => deleteSentence.mutate(sentence.id)}
+                />
               ))}
 
               {(sentencesData?.list.length ?? 0) === 0 && (
@@ -637,5 +637,490 @@ function SentencePanel() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function SentenceRow({
+  sentence,
+  onUpdate,
+  onDelete,
+}: {
+  sentence: Sentence
+  onUpdate: (data: { content: string; translation: string; source: string; difficulty: number }) => void
+  onDelete: () => void
+}) {
+  const [content, setContent] = useState(sentence.content)
+  const [translation, setTranslation] = useState(sentence.translation ?? '')
+  const [source, setSource] = useState(sentence.source ?? '')
+  const [difficulty, setDifficulty] = useState(sentence.difficulty)
+
+  useEffect(() => {
+    setContent(sentence.content)
+    setTranslation(sentence.translation ?? '')
+    setSource(sentence.source ?? '')
+    setDifficulty(sentence.difficulty)
+  }, [sentence.id, sentence.content, sentence.translation, sentence.source, sentence.difficulty])
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-card/60 p-3">
+      <div className="flex items-start gap-2">
+        <CaseSensitive className="mt-2 h-4 w-4 shrink-0 text-indigo-400" />
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Input
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="句子内容"
+            className="text-sm font-medium"
+          />
+          <Input
+            value={translation}
+            onChange={(e) => setTranslation(e.target.value)}
+            placeholder="翻译（可选）"
+            className="text-sm text-muted-foreground"
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pl-6">
+        <Input
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          placeholder="来源"
+          className="flex-1 text-xs"
+        />
+        <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v))}>
+          <SelectTrigger className="w-24 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[1, 2, 3, 4, 5].map((d) => (
+              <SelectItem key={d} value={String(d)}>
+                难度 {d}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          onClick={() => onUpdate({ content, translation, source, difficulty })}
+          variant="ghost"
+          size="sm"
+        >
+          保存
+        </Button>
+        <Button
+          onClick={onDelete}
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+        >
+          删除
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Article Panel ────────────────────────────────────────
+
+function ArticlePanel() {
+  const [view, setView] = useState<'banks' | 'articles' | 'detail'>('banks')
+  const [selectedBankId, setSelectedBankId] = useState('')
+  const [selectedArticleId, setSelectedArticleId] = useState('')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <button
+          onClick={() => { setView('banks'); setSelectedBankId(''); setSelectedArticleId('') }}
+          className={view === 'banks' ? 'font-medium text-foreground' : 'hover:text-foreground'}
+        >
+          全部文章库
+        </button>
+        {(view === 'articles' || view === 'detail') && (
+          <>
+            <ChevronRight className="size-3.5" />
+            <button
+              onClick={() => { setView('articles'); setSelectedArticleId('') }}
+              className={view === 'articles' ? 'font-medium text-foreground' : 'hover:text-foreground'}
+            >
+              文章列表
+            </button>
+          </>
+        )}
+        {view === 'detail' && (
+          <>
+            <ChevronRight className="size-3.5" />
+            <span className="font-medium text-foreground">文章详情</span>
+          </>
+        )}
+      </div>
+
+      {view === 'banks' && (
+        <ArticleBankList
+          onSelect={(id) => { setSelectedBankId(id); setView('articles') }}
+        />
+      )}
+      {view === 'articles' && selectedBankId && (
+        <ArticleListView
+          bankId={selectedBankId}
+          onSelect={(id) => { setSelectedArticleId(id); setView('detail') }}
+        />
+      )}
+      {view === 'detail' && selectedArticleId && (
+        <ArticleDetailPanel articleId={selectedArticleId} />
+      )}
+    </div>
+  )
+}
+
+function ArticleBankList({ onSelect }: { onSelect: (id: string) => void }) {
+  const { data: banks = [] } = useArticleBanks()
+  const createBank = useCreateArticleBank()
+  const deleteBank = useDeleteArticleBank()
+  const [name, setName] = useState('')
+  const [lang, setLang] = useState('en')
+
+  const handleCreate = () => {
+    if (!name.trim()) return
+    createBank.mutate({ name: name.trim(), language: lang }, { onSuccess: () => setName('') })
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>文章库列表</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2">
+            {banks.map((bank: ArticleBank) => (
+              <Button
+                key={bank.id}
+                onClick={() => onSelect(bank.id)}
+                variant="ghost"
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left"
+              >
+                <span className="truncate text-sm font-medium">{bank.name}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">{bank.language}</Badge>
+                  <span className="text-xs opacity-70">{bank.article_count} 篇</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteBank.mutate(bank.id) }}
+                    className="ml-1 rounded p-0.5 text-destructive opacity-0 hover:opacity-100 group-hover:opacity-60"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              </Button>
+            ))}
+            {banks.length === 0 && (
+              <p className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                还没有文章库，先创建一个。
+              </p>
+            )}
+          </div>
+          <div className="space-y-2 border-t border-border pt-4">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="新文章库名称" />
+            <Input value={lang} onChange={(e) => setLang(e.target.value)} placeholder="语言 (en / zh)" />
+            <Button onClick={handleCreate} className="w-full" disabled={createBank.isPending}>
+              <Plus className="h-4 w-4" />
+              创建文章库
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex h-full min-h-40 items-center justify-center pt-5">
+          <div className="text-center text-muted-foreground">
+            <FileText className="mx-auto mb-3 size-10 opacity-20" />
+            <p className="text-sm">选择左侧文章库查看文章</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ArticleListView({
+  bankId,
+  onSelect,
+}: {
+  bankId: string
+  onSelect: (id: string) => void
+}) {
+  const { data } = useArticles(bankId, 1, 100)
+  const createArticle = useCreateArticle()
+
+  const [showForm, setShowForm] = useState(false)
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [content, setContent] = useState('')
+  const [difficulty, setDifficulty] = useState('3')
+
+  const articles = data?.list ?? []
+
+  const handleCreate = () => {
+    if (!title.trim() || !content.trim()) return
+    createArticle.mutate(
+      { bankId, title: title.trim(), author: author.trim(), content: content.trim(), difficulty: parseInt(difficulty, 10) },
+      {
+        onSuccess: () => {
+          setTitle(''); setAuthor(''); setContent(''); setShowForm(false)
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>文章列表</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2">
+            {articles.map((article: Article) => (
+              <Button
+                key={article.id}
+                onClick={() => onSelect(article.id)}
+                variant="ghost"
+                className="flex w-full flex-col items-start rounded-lg px-3 py-2 text-left"
+              >
+                <span className="w-full truncate text-sm font-medium">{article.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {article.paragraph_count} 段 · {article.total_char_count} 字符 · 难度 {article.difficulty}
+                </span>
+              </Button>
+            ))}
+            {articles.length === 0 && (
+              <p className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                还没有文章，先添加一篇。
+              </p>
+            )}
+          </div>
+          <Button onClick={() => setShowForm(!showForm)} className="w-full" variant="outline">
+            <Plus className="h-4 w-4" />
+            {showForm ? '收起' : '添加文章'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-5">
+          {showForm ? (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-foreground">新建文章（空行自动分段，段内自动分句）</h3>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Input placeholder="标题 *" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <Input placeholder="作者（可选）" value={author} onChange={(e) => setAuthor(e.target.value)} />
+              </div>
+              <textarea
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={10}
+                placeholder="粘贴文章内容（空行分段）*"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+              <div className="flex items-center gap-3">
+                <Select value={difficulty} onValueChange={setDifficulty}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <SelectItem key={d} value={String(d)}>难度 {d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex-1" />
+                <Button variant="ghost" onClick={() => setShowForm(false)}>取消</Button>
+                <Button onClick={handleCreate} disabled={createArticle.isPending}>创建</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full min-h-40 items-center justify-center text-center text-sm text-muted-foreground">
+              <div>
+                <FileText className="mx-auto mb-3 size-8 opacity-20" />
+                <p>选择左侧文章查看详情，或点击"添加文章"</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ArticleDetailPanel({ articleId }: { articleId: string }) {
+  const { data: detail } = useArticleDetail(articleId)
+  const { data: sentences = [] } = useArticleSentences(articleId)
+  const updateSentence = useUpdateArticleSentence()
+  const resetProgress = useResetProgress()
+  const deleteArticle = useDeleteArticle()
+
+  const groupedSentences = useMemo(() => {
+    const group = new Map<string, ArticleSentence[]>()
+    for (const s of sentences) {
+      if (!group.has(s.paragraph_id)) group.set(s.paragraph_id, [])
+      group.get(s.paragraph_id)!.push(s)
+    }
+    return group
+  }, [sentences])
+
+  if (!detail) return <div className="py-8 text-center text-sm text-muted-foreground">加载中...</div>
+
+  const progress = detail.progress
+  const progressPercent = progress && progress.total_paragraphs > 0
+    ? (progress.completed_paragraphs / progress.total_paragraphs) * 100
+    : 0
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>{detail.title}</CardTitle>
+              {detail.author && (
+                <p className="mt-1 text-sm text-muted-foreground">作者：{detail.author}</p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => deleteArticle.mutate(articleId)}
+              className="shrink-0 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <Badge variant="outline">难度 {detail.difficulty}</Badge>
+            <span>{detail.paragraph_count} 段</span>
+            <span>{detail.total_char_count} 字符</span>
+          </div>
+          {progress && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  练习进度 {progress.completed_paragraphs} / {progress.total_paragraphs} 段
+                </span>
+                <span className="font-medium">{Math.round(progressPercent)}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-1.5" />
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => resetProgress.mutate(articleId)}>
+                重置进度
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">段落与句子释义</CardTitle>
+          <p className="text-xs text-muted-foreground">为每个句子填写释义，练习时将在打字区下方显示</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {detail.paragraphs.map((p) => {
+            const ss = groupedSentences.get(p.id) ?? []
+            return (
+              <div key={p.id} className="rounded-lg border border-border/60 p-3">
+                <div className="mb-2 flex items-center gap-3 text-xs text-muted-foreground">
+                  <Badge variant="secondary" className="text-[10px]">段落 {p.paragraph_index + 1}</Badge>
+                  <span>{p.char_count} 字符</span>
+                  <span>{p.sentence_count} 句</span>
+                </div>
+                <p className="mb-3 rounded bg-secondary/30 p-2 text-sm leading-relaxed text-foreground">
+                  {p.content}
+                </p>
+                <div className="space-y-2">
+                  {ss.map((s) => (
+                    <ArticleSentenceRow
+                      key={s.id}
+                      sentence={s}
+                      onUpdate={(translation) =>
+                        updateSentence.mutate({ sentenceId: s.id, translation })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+
+      <ArticleProgressSection />
+    </div>
+  )
+}
+
+function ArticleSentenceRow({
+  sentence,
+  onUpdate,
+}: {
+  sentence: ArticleSentence
+  onUpdate: (translation: string) => void
+}) {
+  const [translation, setTranslation] = useState(sentence.translation ?? '')
+
+  useEffect(() => {
+    setTranslation(sentence.translation ?? '')
+  }, [sentence.id, sentence.translation])
+
+  return (
+    <div className="rounded border border-border/50 bg-secondary/10 p-2">
+      <p className="mb-1.5 text-sm text-foreground">{sentence.content}</p>
+      <div className="flex items-center gap-2">
+        <Input
+          value={translation}
+          onChange={(e) => setTranslation(e.target.value)}
+          placeholder="填写句子释义（可选）"
+          className="text-xs"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onUpdate(translation)}
+          className="shrink-0"
+        >
+          <Save className="size-3" />
+          保存
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ArticleProgressSection() {
+  const { data: progress = [] } = useArticleProgress()
+
+  if (progress.length === 0) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">全部阅读进度</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {progress.map((item: ProgressItem) => {
+          const percent = item.total_paragraphs > 0
+            ? (item.completed_paragraphs / item.total_paragraphs) * 100
+            : 0
+          return (
+            <div key={item.id} className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{item.article_title}</span>
+                <span className="text-muted-foreground">{item.completed_paragraphs}/{item.total_paragraphs}</span>
+              </div>
+              <Progress value={percent} className="h-1.5" />
+            </div>
+          )
+        })}
+      </CardContent>
+    </Card>
   )
 }
