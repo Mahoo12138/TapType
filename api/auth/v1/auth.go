@@ -57,12 +57,13 @@ type MeReq struct {
 	g.Meta `path:"/auth/me" method:"get" tags:"Auth" summary:"Get current user info"`
 }
 type MeRes struct {
-	ID        string      `json:"id"`
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	Role      string      `json:"role"`
-	IsActive  int         `json:"is_active"`
-	CreatedAt interface{} `json:"created_at"`
+	ID            string      `json:"id"`
+	Username      string      `json:"username"`
+	Email         string      `json:"email"`
+	AvatarMediaID *string     `json:"avatar_media_id,omitempty"`
+	Role          string      `json:"role"`
+	IsActive      int         `json:"is_active"`
+	CreatedAt     interface{} `json:"created_at"`
 }
 
 type UpdateProfileReq struct {
@@ -72,10 +73,11 @@ type UpdateProfileReq struct {
 }
 
 type UpdateProfileRes struct {
-	ID        string      `json:"id"`
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	Role      string      `json:"role"`
-	IsActive  int         `json:"is_active"`
-	CreatedAt interface{} `json:"created_at"`
+	ID            string      `json:"id"`
+	Username      string      `json:"username"`
+	Email         string      `json:"email"`
+	AvatarMediaID *string     `json:"avatar_media_id,omitempty"`
+	Role          string      `json:"role"`
+	IsActive      int         `json:"is_active"`
+	CreatedAt     interface{} `json:"created_at"`
 }
