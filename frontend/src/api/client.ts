@@ -27,16 +27,32 @@ async function refreshToken(): Promise<void> {
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().accessToken
+  const headers = new Headers(init?.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  if (!(init?.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
+    headers,
   })
-  const json: ApiResponse<T> = await res.json()
+
+  // Read response as text first so we can handle empty or invalid JSON gracefully
+  const text = await res.text()
+  if (!text || text.trim() === '') {
+    throw new ApiError(res.status, 'empty response from server')
+  }
+
+  let json: ApiResponse<T>
+  try {
+    json = JSON.parse(text) as ApiResponse<T>
+  } catch (err) {
+    throw new ApiError(res.status, `invalid JSON response: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
   if (json.code === 40102) {
     // access token expired, try refresh

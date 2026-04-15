@@ -10,6 +10,7 @@ export interface User {
   id: string
   username: string
   email: string
+  avatar_media_id?: string | null
   role: 'user' | 'admin'
   is_active: number
   created_at: string
@@ -371,4 +372,22 @@ export interface ParagraphDetail {
 
 export interface ProgressItem extends UserArticleProgress {
   article_title: string
+}
+
+// --- Open API Token types ---
+
+export interface ApiToken {
+  id: string
+  name: string
+  prefix: string
+  scopes: string
+  expires_at: string | null
+  last_used_at: string | null
+  is_active: number
+  created_at: string
+}
+
+export interface CreateApiTokenResponse {
+  token: ApiToken
+  raw_token: string
 }
