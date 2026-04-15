@@ -21,6 +21,7 @@ import (
 	errrecordCtrl "taptype/internal/controller/errrecord"
 	goalCtrl "taptype/internal/controller/goal"
 	mediaCtrl "taptype/internal/controller/media"
+	openapiCtrl "taptype/internal/controller/openapi"
 	practiceCtrl "taptype/internal/controller/practice"
 	sentencebankCtrl "taptype/internal/controller/sentencebank"
 	settingsCtrl "taptype/internal/controller/settings"
@@ -34,6 +35,7 @@ import (
 	errorsService "taptype/internal/service/errors"
 	goalService "taptype/internal/service/goal"
 	mediaService "taptype/internal/service/media"
+	openapiService "taptype/internal/service/openapi"
 	practiceService "taptype/internal/service/practice"
 	sentenceService "taptype/internal/service/sentence"
 	settingsService "taptype/internal/service/settings"
@@ -73,6 +75,7 @@ var (
 			articleSvc := articleService.NewService(gormDB)
 			settingsSvc := settingsService.NewService(gormDB)
 			mediaSvc := mediaService.NewService(gormDB)
+			openapiSvc := openapiService.NewService(gormDB)
 			if err := mediaSvc.SeedSystemSounds(ctx, resource.Sounds); err != nil {
 				g.Log().Warningf(ctx, "seed default system sounds failed: %v", err)
 			}
@@ -113,7 +116,7 @@ var (
 
 				// Protected routes (JWT required)
 				group.Group("/", func(protectedGroup *ghttp.RouterGroup) {
-					protectedGroup.Middleware(middleware.JWTAuth(jwtSecret))
+					protectedGroup.Middleware(middleware.JWTAuth(jwtSecret, openapiSvc))
 					protectedGroup.Middleware(middleware.RateLimit("general", middleware.RateLimitConfig{MaxTokens: 30, RefillRate: 10}))
 
 					protectedGroup.Bind(
@@ -129,6 +132,7 @@ var (
 						achievementCtrl.NewV1(achievementSvc),
 						mediaCtrl.NewV1(mediaSvc),
 						settingsCtrl.NewV1(settingsSvc),
+						openapiCtrl.NewV1(openapiSvc),
 					)
 
 					// Admin routes (requires admin role)

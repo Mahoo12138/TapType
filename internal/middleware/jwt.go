@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,9 +16,19 @@ type Claims struct {
 	TokenType string `json:"token_type"`
 }
 
-// JWTAuth validates the access token from Authorization header
-// and sets user_id and role in the request context.
-func JWTAuth(jwtSecret string) func(r *ghttp.Request) {
+// ApiTokenValidator is implemented by the openapi service to validate tp_ tokens.
+type ApiTokenValidator interface {
+	ValidateToken(ctx context.Context, rawToken string) (userID, role string, err error)
+}
+
+// JWTAuth validates the access token from Authorization header.
+// It supports both JWT Bearer tokens and tp_ API tokens.
+func JWTAuth(jwtSecret string, validators ...ApiTokenValidator) func(r *ghttp.Request) {
+	var apiTokenValidator ApiTokenValidator
+	if len(validators) > 0 {
+		apiTokenValidator = validators[0]
+	}
+
 	return func(r *ghttp.Request) {
 		authHeader := r.GetHeader("Authorization")
 		if authHeader == "" {
@@ -39,6 +50,25 @@ func JWTAuth(jwtSecret string) func(r *ghttp.Request) {
 			return
 		}
 
+		// API token path: tp_ prefix
+		if strings.HasPrefix(tokenString, "tp_") && apiTokenValidator != nil {
+			userID, role, err := apiTokenValidator.ValidateToken(r.Context(), tokenString)
+			if err != nil {
+				r.Response.WriteJsonExit(map[string]interface{}{
+					"code":    40105,
+					"message": "api token invalid",
+					"data":    nil,
+				})
+				return
+			}
+			r.SetCtxVar("user_id", userID)
+			r.SetCtxVar("role", role)
+			r.SetCtxVar("auth_type", "api_token")
+			r.Middleware.Next()
+			return
+		}
+
+		// JWT path
 		token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -75,6 +105,7 @@ func JWTAuth(jwtSecret string) func(r *ghttp.Request) {
 		// Store user info in context for downstream handlers
 		r.SetCtxVar("user_id", claims.UserID)
 		r.SetCtxVar("role", claims.Role)
+		r.SetCtxVar("auth_type", "jwt")
 		r.Middleware.Next()
 	}
 }
