@@ -65,7 +65,20 @@ func (c *ControllerV1) GetSession(ctx context.Context, req *v1.GetSessionReq) (r
 		Result:         result.Result,
 		KeystrokeStats: result.KeystrokeStats,
 		ErrorItems:     result.ErrorItems,
+		Words:          result.Words,
+		Sentences:      result.Sentences,
 	}, nil
+}
+
+func (c *ControllerV1) DiscardSession(ctx context.Context, req *v1.DiscardSessionReq) (res *v1.DiscardSessionRes, err error) {
+	r := g.RequestFromCtx(ctx)
+	userID := r.GetCtxVar("user_id").String()
+
+	if err = c.practiceSvc.DiscardSession(ctx, userID, req.Id); err != nil {
+		return nil, err
+	}
+
+	return &v1.DiscardSessionRes{}, nil
 }
 
 func (c *ControllerV1) CompleteSession(ctx context.Context, req *v1.CompleteSessionReq) (res *v1.CompleteSessionRes, err error) {

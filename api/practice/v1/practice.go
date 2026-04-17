@@ -38,7 +38,15 @@ type GetSessionRes struct {
 	Result         interface{} `json:"result,omitempty"`
 	KeystrokeStats interface{} `json:"keystroke_stats"`
 	ErrorItems     interface{} `json:"error_items"`
+	Words          interface{} `json:"words,omitempty"`
+	Sentences      interface{} `json:"sentences,omitempty"`
 }
+
+type DiscardSessionReq struct {
+	g.Meta `path:"/practice/sessions/{id}" method:"delete" tags:"Practice" summary:"Discard unfinished practice session"`
+	Id     string `json:"id" in:"path"`
+}
+type DiscardSessionRes struct{}
 
 type CompleteSessionReq struct {
 	g.Meta         `path:"/practice/sessions/{id}" method:"patch" tags:"Practice" summary:"Complete practice session"`
