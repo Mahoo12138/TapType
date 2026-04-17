@@ -1,29 +1,31 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react'
 import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Eye,
   Flag,
   Play,
   RotateCcw,
   SkipForward,
+  Trash2,
   Wifi,
   WifiOff,
   Zap,
 } from 'lucide-react'
 import { useWordBanks } from '@/api/wordBanks'
 import { useSentenceBanks } from '@/api/sentenceBanks'
-import { useCompletePractice, useCreateSession, useSessions } from '@/api/practice'
+import { useCompletePractice, useCreateSession, useDiscardSession, useSession, useSessions } from '@/api/practice'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWordTyping } from '@/hooks/useWordTyping'
 import { AchievementToast } from '@/components/AchievementToast'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -32,13 +34,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  clearPracticeSessionProgress,
+  loadPracticeSessionProgress,
+  savePracticeSessionProgress,
+} from '@/lib/practiceSessionProgress'
 import type { Achievement, SessionWithContent } from '@/types/api'
 
 export const Route = createFileRoute('/practice')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    sessionId: typeof search.sessionId === 'string' && search.sessionId.length > 0 ? search.sessionId : undefined,
+  }),
   component: Practice,
 })
 
 function Practice() {
+  const navigate = useNavigate()
+  const { sessionId: resumeSessionId } = Route.useSearch()
+
   const [mode, setMode] = useState('normal')
   const [sourceType, setSourceType] = useState<'word_bank' | 'sentence_bank'>('word_bank')
   const [sourceId, setSourceId] = useState('')
@@ -48,24 +61,35 @@ function Practice() {
   const [submitted, setSubmitted] = useState(false)
   const [createError, setCreateError] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [discardingSessionId, setDiscardingSessionId] = useState<string | null>(null)
   const [newAchievements, setNewAchievements] = useState<Achievement[]>([])
   const dismissAchievements = useCallback(() => setNewAchievements([]), [])
 
   const { data: wordBanks = [] } = useWordBanks()
   const { data: sentenceBanks = [] } = useSentenceBanks()
   const { data: recentSessions } = useSessions(1, 6)
+  const {
+    data: resumeSession,
+    error: resumeError,
+    isLoading: isResumeLoading,
+  } = useSession(resumeSessionId ?? '')
 
   const createSession = useCreateSession()
   const completePractice = useCompletePractice()
+  const discardSession = useDiscardSession()
 
   const textItems = useMemo(() => {
     if (!activeSession) return []
-    if (activeSession.words) return activeSession.words.map((w) => ({ id: w.id, content: w.content }))
-    if (activeSession.sentences) return activeSession.sentences.map((s) => ({ id: s.id, content: s.content }))
+    if (activeSession.words) return activeSession.words.map((word) => ({ id: word.id, content: word.content }))
+    if (activeSession.sentences) return activeSession.sentences.map((sentence) => ({ id: sentence.id, content: sentence.content }))
     return []
   }, [activeSession])
 
   const words = useMemo(() => textItems.map((item) => item.content), [textItems])
+  const initialSnapshot = useMemo(
+    () => loadPracticeSessionProgress(activeSession?.session.id),
+    [activeSession?.session.id],
+  )
 
   const {
     wordIndex,
@@ -76,30 +100,74 @@ function Practice() {
     handleKeyDown,
     getStats,
     getKeystrokeStats,
+    getResumeSnapshot,
     getErrorItems,
     skipWord,
     reset,
-  } = useWordTyping({ words })
+  } = useWordTyping({ words, initialSnapshot })
 
   const { stats: wsStats, connected, error: wsError, send, close } = useWebSocket(
     activeSession?.session.id ?? null,
   )
 
+  const clearResumeSearch = useCallback(() => {
+    void navigate({ to: '/practice', search: { sessionId: undefined }, replace: true })
+  }, [navigate])
+
+  useEffect(() => {
+    if (!resumeSessionId || !resumeError) return
+    setCreateError(resumeError instanceof Error ? resumeError.message : '恢复练习失败，请重试')
+    clearResumeSearch()
+  }, [clearResumeSearch, resumeError, resumeSessionId])
+
+  useEffect(() => {
+    if (!resumeSessionId || !resumeSession) return
+
+    if (resumeSession.result || resumeSession.session.ended_at) {
+      clearPracticeSessionProgress(resumeSessionId)
+      void navigate({ to: '/history/$sessionId', params: { sessionId: resumeSessionId }, replace: true })
+      return
+    }
+
+    const hasContent = (resumeSession.words?.length ?? 0) > 0 || (resumeSession.sentences?.length ?? 0) > 0
+    if (!hasContent) {
+      setCreateError('该练习记录缺少可恢复内容，暂时无法继续。')
+      clearResumeSearch()
+      return
+    }
+
+    close()
+    setMode(resumeSession.session.mode)
+    setSourceType(resumeSession.session.source_type as 'word_bank' | 'sentence_bank')
+    setSourceId(resumeSession.session.source_id ?? '')
+    setItemCount(resumeSession.session.item_count || 20)
+    setSubmitted(false)
+    setCreateError('')
+    setSubmitError('')
+    setNewAchievements([])
+    setActiveSession({
+      session: resumeSession.session,
+      words: resumeSession.words,
+      sentences: resumeSession.sentences,
+    })
+    clearResumeSearch()
+  }, [clearResumeSearch, close, navigate, resumeSession, resumeSessionId])
+
   useEffect(() => {
     if (!activeSession || submitted) return
 
-    const listener = (e: KeyboardEvent) => {
-      const beforeLen = wordState.inputWord.length
-      const expected = wordState.displayWord[beforeLen] || ''
+    const listener = (event: KeyboardEvent) => {
+      const beforeLength = wordState.inputWord.length
+      const expected = wordState.displayWord[beforeLength] || ''
 
-      handleKeyDown(e)
+      handleKeyDown(event)
 
-      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
         send({
           type: 'keystroke',
-          char: e.key,
+          char: event.key,
           timestamp: Date.now(),
-          is_correct: e.key === expected,
+          is_correct: event.key === expected,
         })
       }
     }
@@ -108,13 +176,34 @@ function Practice() {
     return () => window.removeEventListener('keydown', listener)
   }, [activeSession, handleKeyDown, send, submitted, wordState.displayWord, wordState.inputWord.length])
 
+  useEffect(() => {
+    if (!activeSession || submitted || words.length === 0) return
+    savePracticeSessionProgress(activeSession.session.id, getResumeSnapshot())
+  }, [
+    activeSession,
+    getResumeSnapshot,
+    submitted,
+    timerTime,
+    wordIndex,
+    wordState.hasWrong,
+    wordState.inputWord,
+    words.length,
+  ])
+
   const localStats = getStats()
-  const displayStats = {
-    wpm: wsStats?.wpm ?? localStats.wpm,
-    rawWpm: wsStats?.raw_wpm ?? localStats.wpm,
-    accuracy: wsStats?.accuracy ?? localStats.accuracy,
-    elapsedMs: wsStats?.elapsed_ms ?? timerTime * 1000,
-  }
+  const displayStats = initialSnapshot
+    ? {
+        wpm: localStats.wpm,
+        rawWpm: localStats.wpm,
+        accuracy: localStats.accuracy,
+        elapsedMs: timerTime * 1000,
+      }
+    : {
+        wpm: wsStats?.wpm ?? localStats.wpm,
+        rawWpm: wsStats?.raw_wpm ?? localStats.wpm,
+        accuracy: wsStats?.accuracy ?? localStats.accuracy,
+        elapsedMs: wsStats?.elapsed_ms ?? timerTime * 1000,
+      }
 
   const progress = words.length > 0 ? ((wordIndex + (isFinished ? 1 : 0)) / words.length) * 100 : 0
   const prevWord = words[wordIndex - 1] ?? ''
@@ -134,8 +223,8 @@ function Practice() {
       },
       {
         onSuccess: (session) => setActiveSession(session),
-        onError: (err) => {
-          setCreateError(err instanceof Error ? err.message : '创建练习失败，请重试')
+        onError: (error) => {
+          setCreateError(error instanceof Error ? error.message : '创建练习失败，请重试')
         },
       },
     )
@@ -160,20 +249,22 @@ function Practice() {
       },
       {
         onSuccess: (data) => {
+          clearPracticeSessionProgress(activeSession.session.id)
           setSubmitted(true)
           close()
           if (data.new_achievements?.length) {
             setNewAchievements(data.new_achievements)
           }
         },
-        onError: (err) => {
-          setSubmitError(err instanceof Error ? err.message : '提交失败，请重试')
+        onError: (error) => {
+          setSubmitError(error instanceof Error ? error.message : '提交失败，请重试')
         },
       },
     )
   }
 
-  const resetPractice = () => {
+  const resetPractice = useCallback(() => {
+    clearPracticeSessionProgress(activeSession?.session.id)
     close()
     setActiveSession(null)
     setSubmitted(false)
@@ -181,10 +272,41 @@ function Practice() {
     setSubmitError('')
     setNewAchievements([])
     reset()
-  }
+    clearResumeSearch()
+  }, [activeSession?.session.id, clearResumeSearch, close, reset])
+
+  const openSessionDetail = useCallback((sessionId: string) => {
+    void navigate({ to: '/history/$sessionId', params: { sessionId } })
+  }, [navigate])
+
+  const continueSession = useCallback((sessionId: string) => {
+    void navigate({ to: '/practice', search: { sessionId } })
+  }, [navigate])
+
+  const discardPendingSession = useCallback((sessionId: string) => {
+    if (!window.confirm('确定要舍弃这条未完成练习吗？舍弃后无法继续恢复。')) {
+      return
+    }
+
+    setCreateError('')
+    setDiscardingSessionId(sessionId)
+    discardSession.mutate(sessionId, {
+      onSuccess: () => {
+        clearPracticeSessionProgress(sessionId)
+        setDiscardingSessionId(null)
+        if (activeSession?.session.id === sessionId) {
+          resetPractice()
+        }
+      },
+      onError: (error) => {
+        setDiscardingSessionId(null)
+        setCreateError(error instanceof Error ? error.message : '舍弃练习失败，请重试')
+      },
+    })
+  }, [activeSession?.session.id, discardSession, resetPractice])
 
   const selectedWordBank = sourceType === 'word_bank'
-    ? (wordBanks.find((b) => b.id === sourceId) ?? null)
+    ? (wordBanks.find((bank) => bank.id === sourceId) ?? null)
     : null
 
   const currentWordInfo = sourceType === 'word_bank' && activeSession?.words
@@ -200,6 +322,12 @@ function Practice() {
         <p className="text-sm text-muted-foreground">按 qwerty-learner 的逐词节奏训练，专注当前词，速度和准确率会更稳定。</p>
       </div>
 
+      {isResumeLoading && !activeSession && (
+        <p className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
+          正在恢复未完成练习...
+        </p>
+      )}
+
       {!activeSession && (
         <Card className="mb-6 border-border/70 bg-card/80">
           <CardHeader className="pb-2">
@@ -209,7 +337,7 @@ function Practice() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <label className="space-y-1 text-sm">
                 <span className="text-muted-foreground">模式</span>
-                <Select value={mode} onValueChange={(v) => setMode(v)}>
+                <Select value={mode} onValueChange={(value) => setMode(value)}>
                   <SelectTrigger className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                     <SelectValue />
                   </SelectTrigger>
@@ -225,8 +353,8 @@ function Practice() {
                 <span className="text-muted-foreground">内容类型</span>
                 <Select
                   value={sourceType}
-                  onValueChange={(v) => {
-                    const next = v as 'word_bank' | 'sentence_bank'
+                  onValueChange={(value) => {
+                    const next = value as 'word_bank' | 'sentence_bank'
                     setSourceType(next)
                     setSourceId('')
                   }}
@@ -243,21 +371,21 @@ function Practice() {
 
               <label className="space-y-1 text-sm">
                 <span className="text-muted-foreground">选择内容库</span>
-                <Select value={sourceId || '__none'} onValueChange={(v) => setSourceId(v === '__none' ? '' : v)}>
+                <Select value={sourceId || '__none'} onValueChange={(value) => setSourceId(value === '__none' ? '' : value)}>
                   <SelectTrigger className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none">请选择</SelectItem>
                     {sourceType === 'word_bank'
-                      ? wordBanks.map((b) => (
-                          <SelectItem key={b.id} value={String(b.id)}>
-                            {b.name} ({b.word_count})
+                      ? wordBanks.map((bank) => (
+                          <SelectItem key={bank.id} value={String(bank.id)}>
+                            {bank.name} ({bank.word_count})
                           </SelectItem>
                         ))
-                      : sentenceBanks.map((b) => (
-                          <SelectItem key={b.id} value={String(b.id)}>
-                            {b.name} ({b.sentence_count})
+                      : sentenceBanks.map((bank) => (
+                          <SelectItem key={bank.id} value={String(bank.id)}>
+                            {bank.name} ({bank.sentence_count})
                           </SelectItem>
                         ))}
                   </SelectContent>
@@ -271,12 +399,12 @@ function Practice() {
                   min={1}
                   max={200}
                   value={itemCount}
-                  onChange={(e) => setItemCount(Number(e.target.value) || 1)}
+                  onChange={(event) => setItemCount(Number(event.target.value) || 1)}
                 />
               </label>
             </div>
 
-            <Button onClick={startPractice} disabled={!sourceId || createSession.isPending} className="mt-4">
+            <Button onClick={startPractice} disabled={!sourceId || createSession.isPending || isResumeLoading} className="mt-4">
               <Play className="mr-1 h-4 w-4" />
               {createSession.isPending ? '创建中...' : '开始练习'}
             </Button>
@@ -421,14 +549,50 @@ function Practice() {
             {recentSessions?.list.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm"
+                className="rounded-lg border border-border/70 bg-background/50 px-3 py-3 text-sm"
               >
-                <span className="text-foreground">
-                  {session.mode} · {session.source_type}
-                </span>
-                <span className="text-muted-foreground">
-                  {session.result ? `${session.result.wpm.toFixed(1)} WPM` : '未完成'}
-                </span>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-foreground">
+                        {formatSessionName(session.mode, session.source_type, session.item_count)}
+                      </span>
+                      <Badge variant={session.result || session.ended_at ? 'success' : 'warning'}>
+                        {session.result || session.ended_at ? '已完成' : '未完成'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(session.created_at).toLocaleString('zh-CN')}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {session.result ? `${session.result.wpm.toFixed(1)} WPM` : '等待继续或舍弃'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 md:justify-end">
+                    <Button variant="outline" size="sm" onClick={() => openSessionDetail(session.id)}>
+                      <Eye className="mr-1 h-4 w-4" />
+                      查看
+                    </Button>
+                    {!session.result && !session.ended_at && (
+                      <>
+                        <Button size="sm" onClick={() => continueSession(session.id)}>
+                          <Play className="mr-1 h-4 w-4" />
+                          继续
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => discardPendingSession(session.id)}
+                          disabled={discardingSessionId === session.id}
+                        >
+                          <Trash2 className="mr-1 h-4 w-4" />
+                          {discardingSessionId === session.id ? '舍弃中...' : '舍弃'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
             {(recentSessions?.list.length ?? 0) === 0 && (
@@ -452,17 +616,17 @@ function WordPanel({
   hasWrong: boolean
   dictationMode: boolean
 }) {
-  const revealByState = (idx: number) => letterStates[idx] === 'correct' || letterStates[idx] === 'wrong'
+  const revealByState = (index: number) => letterStates[index] === 'correct' || letterStates[index] === 'wrong'
 
   return (
     <div className="flex min-h-36 items-center justify-center">
       <div className={`flex flex-wrap items-center justify-center gap-0.5 text-center text-4xl font-semibold tracking-wide md:text-5xl ${hasWrong ? 'animate-pulse' : ''}`}>
-        {word.split('').map((ch, idx) => {
-          const state = letterStates[idx]
-          const visible = !dictationMode || revealByState(idx)
+        {word.split('').map((character, index) => {
+          const state = letterStates[index]
+          const visible = !dictationMode || revealByState(index)
           return (
             <span
-              key={`${ch}-${idx}`}
+              key={`${character}-${index}`}
               className={`rounded-md px-1.5 py-1 transition-colors ${
                 state === 'correct'
                   ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
@@ -471,7 +635,7 @@ function WordPanel({
                     : 'text-foreground/85'
               }`}
             >
-              {visible ? ch : '_'}
+              {visible ? character : '_'}
             </span>
           )
         })}
@@ -588,10 +752,29 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 }
 
 function formatDuration(ms: number): string {
-  const sec = Math.floor(ms / 1000)
-  const min = Math.floor(sec / 60)
-  const rem = sec % 60
-  const mm = String(min).padStart(2, '0')
-  const ss = String(rem).padStart(2, '0')
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(remainingSeconds).padStart(2, '0')
   return `${mm}:${ss}`
+}
+
+function formatSessionName(mode: string, sourceType: string, itemCount: number) {
+  return `【${formatModeLabel(mode)}】【${formatSourceLabel(sourceType)}】【${itemCount}项】`
+}
+
+function formatModeLabel(mode: string) {
+  switch (mode) {
+    case 'dictation':
+      return '默写模式'
+    case 'recitation':
+      return '背词模式'
+    default:
+      return '普通打字'
+  }
+}
+
+function formatSourceLabel(sourceType: string) {
+  return sourceType === 'sentence_bank' ? '句库练习' : '词库练习'
 }

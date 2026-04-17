@@ -185,7 +185,7 @@ function QuickActions() {
       <CardContent>
         <div className="flex flex-wrap gap-3">
         <Button
-          onClick={() => navigate({ to: '/practice' })}
+          onClick={() => navigate({ to: '/practice', search: { sessionId: undefined } })}
           variant="default"
         >
           开始练习

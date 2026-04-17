@@ -22,6 +22,7 @@ import { Route as ArticlesRouteImport } from './routes/articles'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistorySessionIdRouteImport } from './routes/history.$sessionId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -88,6 +89,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistorySessionIdRoute = HistorySessionIdRouteImport.update({
+  id: '/$sessionId',
+  path: '/$sessionId',
+  getParentRoute: () => HistoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -97,12 +103,13 @@ export interface FileRoutesByFullPath {
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
-  '/history': typeof HistoryRoute
+  '/history': typeof HistoryRouteWithChildren
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
   '/register-admin': typeof RegisterAdminRoute
   '/settings': typeof SettingsRoute
+  '/history/$sessionId': typeof HistorySessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -112,12 +119,13 @@ export interface FileRoutesByTo {
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
-  '/history': typeof HistoryRoute
+  '/history': typeof HistoryRouteWithChildren
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
   '/register-admin': typeof RegisterAdminRoute
   '/settings': typeof SettingsRoute
+  '/history/$sessionId': typeof HistorySessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -128,12 +136,13 @@ export interface FileRoutesById {
   '/content': typeof ContentRoute
   '/errors': typeof ErrorsRoute
   '/goals': typeof GoalsRoute
-  '/history': typeof HistoryRoute
+  '/history': typeof HistoryRouteWithChildren
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
   '/register-admin': typeof RegisterAdminRoute
   '/settings': typeof SettingsRoute
+  '/history/$sessionId': typeof HistorySessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-admin'
     | '/settings'
+    | '/history/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-admin'
     | '/settings'
+    | '/history/$sessionId'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-admin'
     | '/settings'
+    | '/history/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -191,7 +203,7 @@ export interface RootRouteChildren {
   ContentRoute: typeof ContentRoute
   ErrorsRoute: typeof ErrorsRoute
   GoalsRoute: typeof GoalsRoute
-  HistoryRoute: typeof HistoryRoute
+  HistoryRoute: typeof HistoryRouteWithChildren
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   RegisterRoute: typeof RegisterRoute
@@ -292,8 +304,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history/$sessionId': {
+      id: '/history/$sessionId'
+      path: '/$sessionId'
+      fullPath: '/history/$sessionId'
+      preLoaderRoute: typeof HistorySessionIdRouteImport
+      parentRoute: typeof HistoryRoute
+    }
   }
 }
+
+interface HistoryRouteChildren {
+  HistorySessionIdRoute: typeof HistorySessionIdRoute
+}
+
+const HistoryRouteChildren: HistoryRouteChildren = {
+  HistorySessionIdRoute: HistorySessionIdRoute,
+}
+
+const HistoryRouteWithChildren =
+  HistoryRoute._addFileChildren(HistoryRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -303,7 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContentRoute: ContentRoute,
   ErrorsRoute: ErrorsRoute,
   GoalsRoute: GoalsRoute,
-  HistoryRoute: HistoryRoute,
+  HistoryRoute: HistoryRouteWithChildren,
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   RegisterRoute: RegisterRoute,

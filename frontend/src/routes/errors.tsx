@@ -34,7 +34,7 @@ function ErrorsPage() {
         if (data.session) {
           // In Phase 4, navigate to the review practice session
           // For now, show feedback that session was created
-          navigate({ to: '/practice' })
+          navigate({ to: '/practice', search: { sessionId: undefined } })
         }
       },
     })

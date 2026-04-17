@@ -42,11 +42,23 @@ export function useCompletePractice() {
       error_items: { content_type: string; content_id: string; error_count: number; avg_time_ms: number }[]
     }) =>
       request<CompleteResult>(`/practice/sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['sessions'] })
+      qc.invalidateQueries({ queryKey: ['session', variables.sessionId] })
       qc.invalidateQueries({ queryKey: ['daily'] })
       qc.invalidateQueries({ queryKey: ['achievements'] })
       qc.invalidateQueries({ queryKey: ['goals'] })
+    },
+  })
+}
+
+export function useDiscardSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sessionId: string) => request<null>(`/practice/sessions/${sessionId}`, { method: 'DELETE' }),
+    onSuccess: (_, sessionId) => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      qc.removeQueries({ queryKey: ['session', sessionId] })
     },
   })
 }

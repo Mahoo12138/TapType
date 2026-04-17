@@ -21,6 +21,26 @@ export interface WordTypingStats {
   wordCount: number
 }
 
+export interface WordTypingResumeSnapshot {
+  version: 1
+  wordIndex: number
+  timerTime: number
+  totalCorrect: number
+  totalWrong: number
+  wordCount: number
+  keyStats: Array<{
+    keyChar: string
+    hits: number
+    errors: number
+    intervalSum: number
+    intervalCount: number
+  }>
+  wordErrors: Array<{
+    index: number
+    errorCount: number
+  }>
+}
+
 const initialWordState: WordTypingState = {
   displayWord: '',
   inputWord: '',
@@ -33,6 +53,7 @@ const initialWordState: WordTypingState = {
 
 export interface UseWordTypingOptions {
   words: string[]
+  initialSnapshot?: WordTypingResumeSnapshot | null
   onWordComplete?: (index: number, wrongCount: number) => void
   onChapterFinish?: () => void
 }
@@ -42,7 +63,7 @@ export interface UseWordTypingOptions {
  * Processes one word at a time, tracks per-letter correctness,
  * auto-resets on error after a brief shake delay.
  */
-export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWordTypingOptions) {
+export function useWordTyping({ words, initialSnapshot, onWordComplete, onChapterFinish }: UseWordTypingOptions) {
   const [wordIndex, setWordIndex] = useState(0)
   const [wordState, setWordState] = useState<WordTypingState>(initialWordState)
   const [isTyping, setIsTyping] = useState(false)
@@ -56,7 +77,7 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
 
   // Keystroke tracking for backend
   const keystrokesRef = useRef<{ char: string; timestamp: number; isCorrect: boolean }[]>([])
-  const keyStatsRef = useRef<Map<string, { hits: number; errors: number; intervals: number[] }>>(new Map())
+  const keyStatsRef = useRef<Map<string, { hits: number; errors: number; intervalSum: number; intervalCount: number }>>(new Map())
   const lastKeystrokeTimeRef = useRef(0)
 
   // Per-word error counts for error_items
@@ -65,18 +86,32 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
   // Initialize word state
   useEffect(() => {
     if (words.length === 0) return
-    const word = words[0] ?? ''
-    setWordIndex(0)
+
+    const snapshot = initialSnapshot?.version === 1 ? initialSnapshot : null
+    const nextWordIndex = snapshot ? Math.min(Math.max(snapshot.wordIndex, 0), words.length - 1) : 0
+    const word = words[nextWordIndex] ?? ''
+
+    setWordIndex(nextWordIndex)
     setIsTyping(false)
     setIsFinished(false)
-    setTimerTime(0)
-    totalCorrectRef.current = 0
-    totalWrongRef.current = 0
-    wordCountRef.current = 0
+    setTimerTime(snapshot?.timerTime ?? 0)
+    totalCorrectRef.current = snapshot?.totalCorrect ?? 0
+    totalWrongRef.current = snapshot?.totalWrong ?? 0
+    wordCountRef.current = snapshot?.wordCount ?? 0
     keystrokesRef.current = []
-    keyStatsRef.current = new Map()
+    keyStatsRef.current = new Map(
+      (snapshot?.keyStats ?? []).map((item) => [
+        item.keyChar,
+        {
+          hits: item.hits,
+          errors: item.errors,
+          intervalSum: item.intervalSum,
+          intervalCount: item.intervalCount,
+        },
+      ]),
+    )
     lastKeystrokeTimeRef.current = 0
-    wordErrorsRef.current = new Map()
+    wordErrorsRef.current = new Map((snapshot?.wordErrors ?? []).map((item) => [item.index, item.errorCount]))
     setWordState({
       displayWord: word,
       inputWord: '',
@@ -86,7 +121,7 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
       correctCount: 0,
       wrongCount: 0,
     })
-  }, [words])
+  }, [initialSnapshot, words])
 
   // Timer
   useEffect(() => {
@@ -212,11 +247,12 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
       keystrokesRef.current.push({ char: e.key, timestamp: now, isCorrect })
 
       const keyChar = e.key.toLowerCase()
-      const existing = keyStatsRef.current.get(keyChar) || { hits: 0, errors: 0, intervals: [] }
+      const existing = keyStatsRef.current.get(keyChar) || { hits: 0, errors: 0, intervalSum: 0, intervalCount: 0 }
       existing.hits++
       if (!isCorrect) existing.errors++
       if (lastKeystrokeTimeRef.current > 0) {
-        existing.intervals.push(now - lastKeystrokeTimeRef.current)
+        existing.intervalSum += now - lastKeystrokeTimeRef.current
+        existing.intervalCount++
       }
       keyStatsRef.current.set(keyChar, existing)
       lastKeystrokeTimeRef.current = now
@@ -249,14 +285,33 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
   const getKeystrokeStats = useCallback(() => {
     const result: { key_char: string; hit_count: number; error_count: number; avg_interval_ms: number }[] = []
     keyStatsRef.current.forEach((v, key) => {
-      const avgInterval =
-        v.intervals.length > 0
-          ? Math.round(v.intervals.reduce((a, b) => a + b, 0) / v.intervals.length)
-          : 0
+      const avgInterval = v.intervalCount > 0 ? Math.round(v.intervalSum / v.intervalCount) : 0
       result.push({ key_char: key, hit_count: v.hits, error_count: v.errors, avg_interval_ms: avgInterval })
     })
     return result
   }, [])
+
+  const getResumeSnapshot = useCallback((): WordTypingResumeSnapshot => {
+    return {
+      version: 1,
+      wordIndex,
+      timerTime,
+      totalCorrect: totalCorrectRef.current,
+      totalWrong: totalWrongRef.current,
+      wordCount: wordCountRef.current,
+      keyStats: Array.from(keyStatsRef.current.entries()).map(([keyChar, stats]) => ({
+        keyChar,
+        hits: stats.hits,
+        errors: stats.errors,
+        intervalSum: stats.intervalSum,
+        intervalCount: stats.intervalCount,
+      })),
+      wordErrors: Array.from(wordErrorsRef.current.entries()).map(([index, errorCount]) => ({
+        index,
+        errorCount,
+      })),
+    }
+  }, [timerTime, wordIndex])
 
   const getErrorItems = useCallback(
     (contentType: string, contentItems: { id: string; content: string }[]) => {
@@ -327,6 +382,7 @@ export function useWordTyping({ words, onWordComplete, onChapterFinish }: UseWor
     handleKeyDown,
     getStats,
     getKeystrokeStats,
+    getResumeSnapshot,
     getErrorItems,
     skipWord,
     reset,
