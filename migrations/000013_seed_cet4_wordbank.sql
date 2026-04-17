@@ -5,7 +5,7 @@
 INSERT INTO word_banks
     (id, owner_id, name, description, is_public, created_at, updated_at)
 VALUES
-    ('bbfaa566-c993-5caf-a508-1c7187ecbd40', '00000000-0000-0000-0000-000000000001',
+    ('bbfaa566-c993-5caf-a508-1c7187ecbd40', 'system',
      '大学英语四级词汇 (CET-4)', '全国大学英语四级考试核心词汇，约 2700 词。来源：公开 CET-4 词汇表。',
      1, datetime('now'), datetime('now'));
 

@@ -5,7 +5,7 @@
 INSERT INTO word_banks
     (id, owner_id, name, description, is_public, created_at, updated_at)
 VALUES
-    ('64b3368b-f740-50d9-a45b-762af462ac62', '00000000-0000-0000-0000-000000000001',
+    ('64b3368b-f740-50d9-a45b-762af462ac62', 'system',
      '高考英语核心词汇 3500', '教育部课程标准要求高考掌握的英语核心词汇，共 3500 词。来源：公开高考词汇表。',
      1, datetime('now'), datetime('now'));
 
