@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import {
   BookOpen,
@@ -49,6 +49,7 @@ import {
 import {
   useArticleBanks,
   useCreateArticleBank,
+  useUpdateArticleBank,
   useDeleteArticleBank,
   useArticles,
   useCreateArticle,
@@ -61,12 +62,39 @@ import {
 } from '@/api/articleBanks'
 import type { Article, ArticleBank, ArticleSentence, ProgressItem, Sentence, SentenceBank, WordBank } from '@/types/api'
 
+const contentTabs = ['word', 'sentence', 'article'] as const
+type ContentTab = (typeof contentTabs)[number]
+
+function parseContentTab(value: unknown): ContentTab {
+  return typeof value === 'string' && contentTabs.includes(value as ContentTab)
+    ? (value as ContentTab)
+    : 'word'
+}
+
+function parsePositiveInt(value: unknown, fallback: number) {
+  if (typeof value !== 'string') return fallback
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
 export const Route = createFileRoute('/content')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: parseContentTab(search.tab),
+    wordPage: parsePositiveInt(search.wordPage, 1),
+  }),
   component: Content,
 })
 
 function Content() {
-  const [tab, setTab] = useState<'word' | 'sentence' | 'article'>('word')
+  const navigate = useNavigate()
+  const { tab } = Route.useSearch()
+
+  const handleTabChange = (nextTab: ContentTab) => {
+    void navigate({
+      to: '/content',
+      search: (prev) => ({ ...prev, tab: nextTab, wordPage: prev.wordPage ?? 1 }),
+    })
+  }
 
   return (
     <div className="mx-auto max-w-7xl p-8">
@@ -84,7 +112,7 @@ function Content() {
 
       <div className="mb-6 inline-flex rounded-xl border border-border bg-card p-1">
         <Button
-          onClick={() => setTab('word')}
+          onClick={() => handleTabChange('word')}
           variant={tab === 'word' ? 'default' : 'ghost'}
           size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
@@ -94,7 +122,7 @@ function Content() {
           词库管理
         </Button>
         <Button
-          onClick={() => setTab('sentence')}
+          onClick={() => handleTabChange('sentence')}
           variant={tab === 'sentence' ? 'default' : 'ghost'}
           size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
@@ -104,7 +132,7 @@ function Content() {
           句库管理
         </Button>
         <Button
-          onClick={() => setTab('article')}
+          onClick={() => handleTabChange('article')}
           variant={tab === 'article' ? 'default' : 'ghost'}
           size="sm"
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
@@ -122,22 +150,59 @@ function Content() {
   )
 }
 
+function PaginationControls({
+  page,
+  totalPages,
+  itemLabel,
+  onPrev,
+  onNext,
+}: {
+  page: number
+  totalPages: number
+  itemLabel: string
+  onPrev: () => void
+  onNext: () => void
+}) {
+  if (totalPages <= 1) return null
+
+  return (
+    <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
+      <span className="text-xs text-slate-500 dark:text-slate-400">
+        {itemLabel} 第 {page} / {totalPages} 页
+      </span>
+      <div className="flex gap-2">
+        <Button onClick={onPrev} disabled={page <= 1} variant="outline" size="sm">
+          上一页
+        </Button>
+        <Button onClick={onNext} disabled={page >= totalPages} variant="outline" size="sm">
+          下一页
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function WordPanel() {
+  const navigate = useNavigate()
+  const { wordPage } = Route.useSearch()
   const [selectedBankId, setSelectedBankId] = useState('')
   const [search, setSearch] = useState('')
   const [difficulty, setDifficulty] = useState(0)
   const [bankName, setBankName] = useState('')
   const [bankDesc, setBankDesc] = useState('')
+  const [editingBankName, setEditingBankName] = useState('')
+  const [editingBankDescription, setEditingBankDescription] = useState('')
   const [wordContent, setWordContent] = useState('')
   const [wordDefinition, setWordDefinition] = useState('')
   const [wordDifficulty, setWordDifficulty] = useState(3)
+  const pageSize = 20
 
   const { data: banks = [] } = useWordBanks()
   const createBank = useCreateWordBank()
   const updateBank = useUpdateWordBank()
   const deleteBank = useDeleteWordBank()
 
-  const { data: wordsData } = useWords(selectedBankId, 1, 100, search, difficulty)
+  const { data: wordsData } = useWords(selectedBankId, wordPage, pageSize, search, difficulty)
   const createWord = useCreateWord()
   const updateWord = useUpdateWord()
   const deleteWord = useDeleteWord()
@@ -147,6 +212,36 @@ function WordPanel() {
     () => banks.find((b) => b.id === selectedBankId),
     [banks, selectedBankId],
   )
+  const totalPages = Math.max(1, Math.ceil((wordsData?.total ?? 0) / pageSize))
+
+  useEffect(() => {
+    if (!selectedBank) {
+      setEditingBankName('')
+      setEditingBankDescription('')
+      return
+    }
+
+    setEditingBankName(selectedBank.name)
+    setEditingBankDescription(selectedBank.description ?? '')
+  }, [selectedBank?.id])
+
+  useEffect(() => {
+    if (wordPage <= totalPages) return
+
+    void navigate({
+      to: '/content',
+      search: (prev) => ({ ...prev, tab: 'word', wordPage: totalPages }),
+      replace: true,
+    })
+  }, [navigate, totalPages, wordPage])
+
+  const updateWordPage = (nextPage: number, replace = false) => {
+    void navigate({
+      to: '/content',
+      search: (prev) => ({ ...prev, tab: 'word', wordPage: Math.max(1, nextPage) }),
+      replace,
+    })
+  }
 
   const handleCreateBank = () => {
     if (!bankName.trim()) return
@@ -160,6 +255,29 @@ function WordPanel() {
         },
       },
     )
+  }
+
+  const handleSaveBank = () => {
+    if (!selectedBank || !editingBankName.trim()) return
+
+    updateBank.mutate({
+      id: selectedBank.id,
+      name: editingBankName.trim(),
+      description: editingBankDescription.trim(),
+    })
+  }
+
+  const handleDeleteBank = () => {
+    if (!selectedBank) return
+    if (!window.confirm(`确定删除词库「${selectedBank.name}」吗？`)) return
+
+    deleteBank.mutate(selectedBank.id, {
+      onSuccess: () => {
+        setSelectedBankId('')
+        setEditingBankName('')
+        setEditingBankDescription('')
+      },
+    })
   }
 
   const handleCreateWord = () => {
@@ -200,7 +318,10 @@ function WordPanel() {
           {banks.map((bank: WordBank) => (
             <Button
               key={bank.id}
-              onClick={() => setSelectedBankId(bank.id)}
+              onClick={() => {
+                setSelectedBankId(bank.id)
+                updateWordPage(1, true)
+              }}
               variant={selectedBankId === bank.id ? 'secondary' : 'ghost'}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
                 selectedBankId === bank.id
@@ -249,26 +370,6 @@ function WordPanel() {
           </h2>
           {selectedBank && (
             <div className="flex gap-2">
-              <Button
-                onClick={() =>
-                  updateBank.mutate({
-                    id: selectedBank.id,
-                    name: selectedBank.name,
-                    description: selectedBank.description,
-                  })
-                }
-                variant="outline"
-                size="sm"
-              >
-                <Save className="mr-1 inline h-3.5 w-3.5" />保存词库
-              </Button>
-              <Button
-                onClick={() => deleteBank.mutate(selectedBank.id)}
-                variant="destructive"
-                size="sm"
-              >
-                <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除词库
-              </Button>
               <label className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                 <FileUp className="mr-1 inline h-3.5 w-3.5" />导入
                 <input type="file" accept=".json,.csv" onChange={handleImport} className="hidden" />
@@ -279,17 +380,45 @@ function WordPanel() {
 
         {selectedBank && (
           <>
+            <div className="mb-4 grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1fr_auto_auto]">
+              <Input
+                value={editingBankName}
+                onChange={(e) => setEditingBankName(e.target.value)}
+                placeholder="词库名称"
+              />
+              <Input
+                value={editingBankDescription}
+                onChange={(e) => setEditingBankDescription(e.target.value)}
+                placeholder="词库说明"
+              />
+              <Button onClick={handleSaveBank} variant="outline">
+                <Save className="mr-1 inline h-3.5 w-3.5" />保存词库
+              </Button>
+              <Button onClick={handleDeleteBank} variant="destructive">
+                <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除词库
+              </Button>
+            </div>
+
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    updateWordPage(1, true)
+                  }}
                   placeholder="搜索单词"
                   className="pl-9"
                 />
               </div>
-              <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v))}>
+              <Select
+                value={String(difficulty)}
+                onValueChange={(v) => {
+                  setDifficulty(Number(v))
+                  updateWordPage(1, true)
+                }}
+              >
                 <SelectTrigger className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                   <SelectValue />
                 </SelectTrigger>
@@ -385,6 +514,14 @@ function WordPanel() {
                 </div>
               )}
             </div>
+
+            <PaginationControls
+              page={wordPage}
+              totalPages={totalPages}
+              itemLabel={`单词列表，共 ${wordsData?.total ?? 0} 条`}
+              onPrev={() => updateWordPage(wordPage - 1)}
+              onNext={() => updateWordPage(wordPage + 1)}
+            />
           </>
         )}
         </CardContent>
@@ -399,6 +536,8 @@ function SentencePanel() {
   const [difficulty, setDifficulty] = useState(0)
   const [bankName, setBankName] = useState('')
   const [bankCategory, setBankCategory] = useState('')
+  const [editingBankName, setEditingBankName] = useState('')
+  const [editingBankCategory, setEditingBankCategory] = useState('')
   const [sentenceContent, setSentenceContent] = useState('')
   const [sentenceTranslation, setSentenceTranslation] = useState('')
   const [sentenceSource, setSentenceSource] = useState('')
@@ -420,6 +559,17 @@ function SentencePanel() {
     [banks, selectedBankId],
   )
 
+  useEffect(() => {
+    if (!selectedBank) {
+      setEditingBankName('')
+      setEditingBankCategory('')
+      return
+    }
+
+    setEditingBankName(selectedBank.name)
+    setEditingBankCategory(selectedBank.category ?? '')
+  }, [selectedBank?.id])
+
   const handleCreateBank = () => {
     if (!bankName.trim()) return
     createBank.mutate(
@@ -432,6 +582,29 @@ function SentencePanel() {
         },
       },
     )
+  }
+
+  const handleSaveBank = () => {
+    if (!selectedBank || !editingBankName.trim()) return
+
+    updateBank.mutate({
+      id: selectedBank.id,
+      name: editingBankName.trim(),
+      category: editingBankCategory.trim(),
+    })
+  }
+
+  const handleDeleteBank = () => {
+    if (!selectedBank) return
+    if (!window.confirm(`确定删除句库「${selectedBank.name}」吗？`)) return
+
+    deleteBank.mutate(selectedBank.id, {
+      onSuccess: () => {
+        setSelectedBankId('')
+        setEditingBankName('')
+        setEditingBankCategory('')
+      },
+    })
   }
 
   const handleCreateSentence = () => {
@@ -551,6 +724,25 @@ function SentencePanel() {
 
         {selectedBank && (
           <>
+            <div className="mb-4 grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1fr_auto_auto]">
+              <Input
+                value={editingBankName}
+                onChange={(e) => setEditingBankName(e.target.value)}
+                placeholder="句库名称"
+              />
+              <Input
+                value={editingBankCategory}
+                onChange={(e) => setEditingBankCategory(e.target.value)}
+                placeholder="分类"
+              />
+              <Button onClick={handleSaveBank} variant="outline">
+                <Save className="mr-1 inline h-3.5 w-3.5" />保存句库
+              </Button>
+              <Button onClick={handleDeleteBank} variant="destructive">
+                <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除句库
+              </Button>
+            </div>
+
             <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -756,7 +948,7 @@ function ArticlePanel() {
 
       {view === 'banks' && (
         <ArticleBankList
-          onSelect={(id) => { setSelectedBankId(id); setView('articles') }}
+          onOpenArticles={(id) => { setSelectedBankId(id); setView('articles') }}
         />
       )}
       {view === 'articles' && selectedBankId && (
@@ -772,16 +964,82 @@ function ArticlePanel() {
   )
 }
 
-function ArticleBankList({ onSelect }: { onSelect: (id: string) => void }) {
+function ArticleBankList({ onOpenArticles }: { onOpenArticles: (id: string) => void }) {
   const { data: banks = [] } = useArticleBanks()
   const createBank = useCreateArticleBank()
+  const updateBank = useUpdateArticleBank()
   const deleteBank = useDeleteArticleBank()
-  const [name, setName] = useState('')
-  const [lang, setLang] = useState('en')
+  const [selectedBankId, setSelectedBankId] = useState('')
+  const [createName, setCreateName] = useState('')
+  const [createDescription, setCreateDescription] = useState('')
+  const [createLanguage, setCreateLanguage] = useState('en')
+  const [editingName, setEditingName] = useState('')
+  const [editingDescription, setEditingDescription] = useState('')
+  const [editingLanguage, setEditingLanguage] = useState('en')
+
+  const selectedBank = useMemo(
+    () => banks.find((bank) => bank.id === selectedBankId),
+    [banks, selectedBankId],
+  )
+
+  useEffect(() => {
+    if (!selectedBank) {
+      setEditingName('')
+      setEditingDescription('')
+      setEditingLanguage('en')
+      return
+    }
+
+    setEditingName(selectedBank.name)
+    setEditingDescription(selectedBank.description ?? '')
+    setEditingLanguage(selectedBank.language || 'en')
+  }, [selectedBank?.id])
 
   const handleCreate = () => {
-    if (!name.trim()) return
-    createBank.mutate({ name: name.trim(), language: lang }, { onSuccess: () => setName('') })
+    if (!createName.trim()) return
+    createBank.mutate(
+      {
+        name: createName.trim(),
+        description: createDescription.trim(),
+        language: createLanguage.trim() || 'en',
+      },
+      {
+        onSuccess: (bank) => {
+          setSelectedBankId(bank.id)
+          setCreateName('')
+          setCreateDescription('')
+          setCreateLanguage('en')
+          setEditingName(bank.name)
+          setEditingDescription(bank.description ?? '')
+          setEditingLanguage(bank.language || 'en')
+        },
+      },
+    )
+  }
+
+  const handleSave = () => {
+    if (!selectedBank || !editingName.trim()) return
+
+    updateBank.mutate({
+      id: selectedBank.id,
+      name: editingName.trim(),
+      description: editingDescription.trim(),
+      language: editingLanguage.trim() || 'en',
+    })
+  }
+
+  const handleDelete = () => {
+    if (!selectedBank) return
+    if (!window.confirm(`确定删除文章库「${selectedBank.name}」吗？`)) return
+
+    deleteBank.mutate(selectedBank.id, {
+      onSuccess: () => {
+        setSelectedBankId('')
+        setEditingName('')
+        setEditingDescription('')
+        setEditingLanguage('en')
+      },
+    })
   }
 
   return (
@@ -795,20 +1053,14 @@ function ArticleBankList({ onSelect }: { onSelect: (id: string) => void }) {
             {banks.map((bank: ArticleBank) => (
               <Button
                 key={bank.id}
-                onClick={() => onSelect(bank.id)}
-                variant="ghost"
+                onClick={() => setSelectedBankId(bank.id)}
+                variant={selectedBankId === bank.id ? 'secondary' : 'ghost'}
                 className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left"
               >
                 <span className="truncate text-sm font-medium">{bank.name}</span>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">{bank.language}</Badge>
                   <span className="text-xs opacity-70">{bank.article_count} 篇</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteBank.mutate(bank.id) }}
-                    className="ml-1 rounded p-0.5 text-destructive opacity-0 hover:opacity-100 group-hover:opacity-60"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
                 </div>
               </Button>
             ))}
@@ -819,8 +1071,9 @@ function ArticleBankList({ onSelect }: { onSelect: (id: string) => void }) {
             )}
           </div>
           <div className="space-y-2 border-t border-border pt-4">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="新文章库名称" />
-            <Input value={lang} onChange={(e) => setLang(e.target.value)} placeholder="语言 (en / zh)" />
+            <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="新文章库名称" />
+            <Input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="文章库说明（可选）" />
+            <Input value={createLanguage} onChange={(e) => setCreateLanguage(e.target.value)} placeholder="语言 (en / zh)" />
             <Button onClick={handleCreate} className="w-full" disabled={createBank.isPending}>
               <Plus className="h-4 w-4" />
               创建文章库
@@ -830,11 +1083,33 @@ function ArticleBankList({ onSelect }: { onSelect: (id: string) => void }) {
       </Card>
 
       <Card>
-        <CardContent className="flex h-full min-h-40 items-center justify-center pt-5">
-          <div className="text-center text-muted-foreground">
-            <FileText className="mx-auto mb-3 size-10 opacity-20" />
-            <p className="text-sm">选择左侧文章库查看文章</p>
-          </div>
+        <CardContent className="pt-5">
+          {selectedBank ? (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-foreground">文章库设置</h3>
+              <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} placeholder="文章库名称" />
+              <Input value={editingDescription} onChange={(e) => setEditingDescription(e.target.value)} placeholder="文章库说明（可选）" />
+              <Input value={editingLanguage} onChange={(e) => setEditingLanguage(e.target.value)} placeholder="语言 (en / zh)" />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={handleSave} variant="outline">
+                  <Save className="mr-1 inline h-3.5 w-3.5" />保存文章库
+                </Button>
+                <Button onClick={handleDelete} variant="destructive">
+                  <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除文章库
+                </Button>
+                <Button onClick={() => onOpenArticles(selectedBank.id)}>
+                  <ChevronRight className="mr-1 inline h-3.5 w-3.5" />查看文章
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full min-h-40 items-center justify-center text-center text-muted-foreground">
+              <div>
+                <FileText className="mx-auto mb-3 size-10 opacity-20" />
+                <p className="text-sm">选择左侧文章库后可编辑名称、说明和语言</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

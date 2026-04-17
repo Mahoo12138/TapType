@@ -221,6 +221,8 @@ export interface SessionDetail {
   result?: PracticeResult
   keystroke_stats: KeystrokeStat[]
   error_items: ErrorRecord[]
+  words?: Word[]
+  sentences?: Sentence[]
 }
 
 // --- Phase 4 types ---
