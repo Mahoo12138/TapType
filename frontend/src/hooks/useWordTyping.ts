@@ -223,21 +223,23 @@ export function useWordTyping({ words, initialSnapshot, onWordComplete, onChapte
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (isFinished) return
-      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape'].includes(e.key)) return
+      if (isFinished) return false
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape'].includes(e.key)) return false
       if (e.key === 'Backspace' || e.key === 'Enter') {
         e.preventDefault()
-        return
+        return false
       }
-      if (e.key.length !== 1) return
-      if (e.ctrlKey || e.altKey || e.metaKey) return
+      if (e.key.length !== 1) return false
+      if (e.ctrlKey || e.altKey || e.metaKey) return false
       e.preventDefault()
 
       if (!isTyping) {
         setIsTyping(true)
+        lastKeystrokeTimeRef.current = 0
+        return false
       }
 
-      if (wordState.hasWrong) return
+      if (wordState.hasWrong) return false
 
       const now = Date.now()
       const expected = wordState.displayWord[wordState.inputWord.length] ?? ''
@@ -262,9 +264,16 @@ export function useWordTyping({ words, initialSnapshot, onWordComplete, onChapte
         ...prev,
         inputWord: prev.inputWord + (e.key === ' ' ? ' ' : e.key),
       }))
+
+      return true
     },
     [isFinished, isTyping, wordState.hasWrong, wordState.displayWord, wordState.inputWord.length],
   )
+
+  const pause = useCallback(() => {
+    setIsTyping(false)
+    lastKeystrokeTimeRef.current = 0
+  }, [])
 
   const getStats = useCallback((): WordTypingStats => {
     const totalInput = totalCorrectRef.current + totalWrongRef.current
@@ -380,6 +389,7 @@ export function useWordTyping({ words, initialSnapshot, onWordComplete, onChapte
     isFinished,
     timerTime,
     handleKeyDown,
+    pause,
     getStats,
     getKeystrokeStats,
     getResumeSnapshot,
