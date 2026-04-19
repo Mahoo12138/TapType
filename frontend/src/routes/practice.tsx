@@ -98,6 +98,7 @@ function Practice() {
     isFinished,
     timerTime,
     handleKeyDown,
+    pause,
     getStats,
     getKeystrokeStats,
     getResumeSnapshot,
@@ -160,9 +161,9 @@ function Practice() {
       const beforeLength = wordState.inputWord.length
       const expected = wordState.displayWord[beforeLength] || ''
 
-      handleKeyDown(event)
+      const didType = handleKeyDown(event)
 
-      if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      if (didType && event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
         send({
           type: 'keystroke',
           char: event.key,
@@ -175,6 +176,25 @@ function Practice() {
     window.addEventListener('keydown', listener)
     return () => window.removeEventListener('keydown', listener)
   }, [activeSession, handleKeyDown, send, submitted, wordState.displayWord, wordState.inputWord.length])
+
+  useEffect(() => {
+    if (!activeSession || submitted) return
+
+    const pausePractice = () => pause()
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pausePractice()
+      }
+    }
+
+    window.addEventListener('blur', pausePractice)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('blur', pausePractice)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [activeSession, pause, submitted])
 
   useEffect(() => {
     if (!activeSession || submitted || words.length === 0) return
@@ -191,19 +211,12 @@ function Practice() {
   ])
 
   const localStats = getStats()
-  const displayStats = initialSnapshot
-    ? {
-        wpm: localStats.wpm,
-        rawWpm: localStats.wpm,
-        accuracy: localStats.accuracy,
-        elapsedMs: timerTime * 1000,
-      }
-    : {
-        wpm: wsStats?.wpm ?? localStats.wpm,
-        rawWpm: wsStats?.raw_wpm ?? localStats.wpm,
-        accuracy: wsStats?.accuracy ?? localStats.accuracy,
-        elapsedMs: wsStats?.elapsed_ms ?? timerTime * 1000,
-      }
+  const displayStats = {
+    wpm: localStats.wpm,
+    rawWpm: wsStats?.raw_wpm ?? localStats.wpm,
+    accuracy: localStats.accuracy,
+    elapsedMs: timerTime * 1000,
+  }
 
   const progress = words.length > 0 ? ((wordIndex + (isFinished ? 1 : 0)) / words.length) * 100 : 0
   const prevWord = words[wordIndex - 1] ?? ''
@@ -540,67 +553,69 @@ function Practice() {
         </section>
       )}
 
-      <Card className="mt-6 border-border/70 bg-card/70">
-        <CardHeader className="pb-2">
-          <CardTitle>最近练习</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {recentSessions?.list.map((session) => (
-              <div
-                key={session.id}
-                className="rounded-lg border border-border/70 bg-background/50 px-3 py-3 text-sm"
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-foreground">
-                        {formatSessionName(session.mode, session.source_type, session.item_count)}
-                      </span>
-                      <Badge variant={session.result || session.ended_at ? 'success' : 'warning'}>
-                        {session.result || session.ended_at ? '已完成' : '未完成'}
-                      </Badge>
+      {!activeSession && (
+        <Card className="mt-6 border-border/70 bg-card/70">
+          <CardHeader className="pb-2">
+            <CardTitle>最近练习</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentSessions?.list.map((session) => (
+                <div
+                  key={session.id}
+                  className="rounded-lg border border-border/70 bg-background/50 px-3 py-3 text-sm"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-foreground">
+                          {formatSessionName(session.mode, session.source_type, session.item_count)}
+                        </span>
+                        <Badge variant={session.result || session.ended_at ? 'success' : 'warning'}>
+                          {session.result || session.ended_at ? '已完成' : '未完成'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(session.created_at).toLocaleString('zh-CN')}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {session.result ? `${session.result.wpm.toFixed(1)} WPM` : '等待继续或舍弃'}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(session.created_at).toLocaleString('zh-CN')}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {session.result ? `${session.result.wpm.toFixed(1)} WPM` : '等待继续或舍弃'}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2 md:justify-end">
-                    <Button variant="outline" size="sm" onClick={() => openSessionDetail(session.id)}>
-                      <Eye className="mr-1 h-4 w-4" />
-                      查看
-                    </Button>
-                    {!session.result && !session.ended_at && (
-                      <>
-                        <Button size="sm" onClick={() => continueSession(session.id)}>
-                          <Play className="mr-1 h-4 w-4" />
-                          继续
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => discardPendingSession(session.id)}
-                          disabled={discardingSessionId === session.id}
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" />
-                          {discardingSessionId === session.id ? '舍弃中...' : '舍弃'}
-                        </Button>
-                      </>
-                    )}
+                    <div className="flex flex-wrap gap-2 md:justify-end">
+                      <Button variant="outline" size="sm" onClick={() => openSessionDetail(session.id)}>
+                        <Eye className="mr-1 h-4 w-4" />
+                        查看
+                      </Button>
+                      {!session.result && !session.ended_at && (
+                        <>
+                          <Button size="sm" onClick={() => continueSession(session.id)}>
+                            <Play className="mr-1 h-4 w-4" />
+                            继续
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => discardPendingSession(session.id)}
+                            disabled={discardingSessionId === session.id}
+                          >
+                            <Trash2 className="mr-1 h-4 w-4" />
+                            {discardingSessionId === session.id ? '舍弃中...' : '舍弃'}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {(recentSessions?.list.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">暂无历史记录</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+              {(recentSessions?.list.length ?? 0) === 0 && (
+                <p className="text-sm text-muted-foreground">暂无历史记录</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
